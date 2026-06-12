@@ -1,0 +1,334 @@
+{% liquid
+  assign manifest = app.metafields.html_sitemap.manifest.value
+  assign app_config = app.metafields.html_sitemap.config.value
+
+  assign layout = block.settings.layout
+  assign columns = block.settings.columns
+  assign accent_color = block.settings.accent_color
+  assign text_color = block.settings.text_color
+  assign background_mode = block.settings.background_mode
+  assign heading_size = block.settings.heading_size
+  assign spacing_density = block.settings.spacing_density
+  assign show_counts = block.settings.show_counts
+  assign show_last_updated = block.settings.show_last_updated
+
+  if app_config.layout != blank
+    assign layout = app_config.layout
+  endif
+  if app_config.columns != blank
+    assign columns = app_config.columns
+  endif
+  if app_config.accentColor != blank
+    assign accent_color = app_config.accentColor
+  endif
+  if app_config.textColor != blank
+    assign text_color = app_config.textColor
+  endif
+  if app_config.backgroundMode != blank
+    assign background_mode = app_config.backgroundMode
+  endif
+  if app_config.headingSize != blank
+    assign heading_size = app_config.headingSize
+  endif
+  if app_config.spacingDensity != blank
+    assign spacing_density = app_config.spacingDensity
+  endif
+  if app_config.showCounts != blank
+    assign show_counts = app_config.showCounts
+  endif
+  if app_config.showLastUpdated != blank
+    assign show_last_updated = app_config.showLastUpdated
+  endif
+
+  assign section_order = 'navigation,collections,products,pages,articles,policies' | split: ','
+  if app_config.sectionOrder != blank
+    assign section_order = app_config.sectionOrder
+  endif
+%}
+
+<style>
+  .html-sitemap {
+    color: var(--html-sitemap-text, {{ text_color }});
+    padding: var(--html-sitemap-padding, 32px);
+    border-radius: 8px;
+    font-family: var(--font-body-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  }
+  .html-sitemap--soft { background: color-mix(in srgb, var(--html-sitemap-accent, {{ accent_color }}) 7%, transparent); }
+  .html-sitemap--contrast { background: var(--html-sitemap-text, {{ text_color }}); color: #fff; }
+  .html-sitemap__header { margin: 0 0 24px; }
+  .html-sitemap__title {
+    margin: 0;
+    color: inherit;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.08;
+  }
+  .html-sitemap__updated {
+    margin: 8px 0 0;
+    color: color-mix(in srgb, currentColor 72%, transparent);
+    font-size: 0.95rem;
+  }
+  .html-sitemap__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--html-sitemap-columns, {{ columns }}), minmax(0, 1fr));
+    gap: var(--html-sitemap-gap, 24px);
+  }
+  .html-sitemap--compact { --html-sitemap-gap: 16px; --html-sitemap-padding: 20px; }
+  .html-sitemap--editorial { --html-sitemap-gap: 32px; --html-sitemap-padding: 40px; }
+  .html-sitemap--spacing-tight { --html-sitemap-gap: 16px; }
+  .html-sitemap--spacing-roomy { --html-sitemap-gap: 32px; }
+  .html-sitemap__section { min-width: 0; }
+  .html-sitemap__section-title {
+    align-items: center;
+    color: inherit;
+    display: flex;
+    gap: 10px;
+    font-size: 1.2rem;
+    line-height: 1.25;
+    margin: 0 0 12px;
+  }
+  .html-sitemap--heading-small .html-sitemap__section-title { font-size: 1rem; }
+  .html-sitemap--heading-large .html-sitemap__section-title { font-size: 1.45rem; }
+  .html-sitemap__count {
+    background: var(--html-sitemap-accent, {{ accent_color }});
+    border-radius: 999px;
+    color: #fff;
+    display: inline-block;
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 5px 8px;
+  }
+  .html-sitemap__links {
+    display: grid;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .html-sitemap__link {
+    color: inherit;
+    text-decoration-color: color-mix(in srgb, var(--html-sitemap-accent, {{ accent_color }}) 55%, transparent);
+    text-underline-offset: 3px;
+  }
+  .html-sitemap__link:hover { color: var(--html-sitemap-accent, {{ accent_color }}); }
+  .html-sitemap__link-date {
+    color: color-mix(in srgb, currentColor 62%, transparent);
+    display: block;
+    font-size: 0.82rem;
+    margin-top: 2px;
+  }
+  .html-sitemap__empty {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+  @media (max-width: 900px) {
+    .html-sitemap__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    .html-sitemap { padding: 20px 0; }
+    .html-sitemap__grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div
+  class="html-sitemap html-sitemap--{{ layout }} html-sitemap--{{ background_mode }} html-sitemap--heading-{{ heading_size }} html-sitemap--spacing-{{ spacing_density }}"
+  style="--html-sitemap-accent: {{ accent_color }}; --html-sitemap-text: {{ text_color }}; --html-sitemap-columns: {{ columns }};"
+>
+  <header class="html-sitemap__header">
+    <h1 class="html-sitemap__title">{{ block.settings.heading | escape }}</h1>
+    {% if show_last_updated and manifest.generatedAt != blank %}
+      <p class="html-sitemap__updated">
+        Last updated {{ manifest.generatedAt | date: format: 'abbreviated_date' }}
+      </p>
+    {% endif %}
+  </header>
+
+  <div class="html-sitemap__grid">
+    {% assign rendered_links = 0 %}
+    {% for section_key in section_order %}
+      {% liquid
+        assign enabled = true
+        if section_key == 'navigation' and block.settings.show_navigation == false
+          assign enabled = false
+        elsif section_key == 'collections' and block.settings.show_collections == false
+          assign enabled = false
+        elsif section_key == 'products' and block.settings.show_products == false
+          assign enabled = false
+        elsif section_key == 'pages' and block.settings.show_pages == false
+          assign enabled = false
+        elsif section_key == 'articles' and block.settings.show_articles == false
+          assign enabled = false
+        elsif section_key == 'policies' and block.settings.show_policies == false
+          assign enabled = false
+        endif
+        assign chunk_count = manifest.chunks[section_key] | default: 0
+      %}
+      {% if enabled and chunk_count > 0 %}
+        <section class="html-sitemap__section" aria-labelledby="html-sitemap-{{ section_key }}">
+          <h2 id="html-sitemap-{{ section_key }}" class="html-sitemap__section-title">
+            {{ section_key | capitalize }}
+            {% if show_counts %}
+              <span class="html-sitemap__count">
+                {% assign section_total = 0 %}
+                {% assign last_index = chunk_count | minus: 1 %}
+                {% for chunk_index in (0..last_index) %}
+                  {% assign chunk_key = section_key | append: '_' | append: chunk_index %}
+                  {% assign links = app.metafields.html_sitemap[chunk_key].value %}
+                  {% assign section_total = section_total | plus: links.size %}
+                {% endfor %}
+                {{ section_total }}
+              </span>
+            {% endif %}
+          </h2>
+          <ul class="html-sitemap__links">
+            {% assign last_index = chunk_count | minus: 1 %}
+            {% for chunk_index in (0..last_index) %}
+              {% assign chunk_key = section_key | append: '_' | append: chunk_index %}
+              {% assign links = app.metafields.html_sitemap[chunk_key].value %}
+              {% for link in links %}
+                {% assign rendered_links = rendered_links | plus: 1 %}
+                <li class="html-sitemap__item">
+                  <a class="html-sitemap__link" href="{{ link.url | escape }}">{{ link.title | escape }}</a>
+                  {% if show_last_updated and link.updatedAt != blank %}
+                    <span class="html-sitemap__link-date">{{ link.updatedAt | date: format: 'abbreviated_date' }}</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+    {% endfor %}
+
+    {% if rendered_links == 0 %}
+      <p class="html-sitemap__empty">No sitemap links are available yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "HTML sitemap",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Sitemap"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout preset",
+      "default": "directory",
+      "options": [
+        { "value": "compact", "label": "Compact" },
+        { "value": "directory", "label": "Directory" },
+        { "value": "editorial", "label": "Editorial" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#007a5c"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#202223"
+    },
+    {
+      "type": "select",
+      "id": "background_mode",
+      "label": "Background",
+      "default": "transparent",
+      "options": [
+        { "value": "transparent", "label": "Transparent" },
+        { "value": "soft", "label": "Soft" },
+        { "value": "contrast", "label": "Contrast" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Heading size",
+      "default": "medium",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "spacing_density",
+      "label": "Spacing",
+      "default": "balanced",
+      "options": [
+        { "value": "tight", "label": "Tight" },
+        { "value": "balanced", "label": "Balanced" },
+        { "value": "roomy", "label": "Roomy" }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_counts",
+      "label": "Show counts",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_last_updated",
+      "label": "Show last updated dates",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_navigation",
+      "label": "Show navigation",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_collections",
+      "label": "Show collections",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_products",
+      "label": "Show products",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_pages",
+      "label": "Show pages",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_articles",
+      "label": "Show articles",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_policies",
+      "label": "Show policies",
+      "default": true
+    }
+  ]
+}
+{% endschema %}
