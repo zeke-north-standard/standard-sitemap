@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SITEMAP_CONFIG } from "~/models/sitemap.config";
-import { renderSitemapMarkup } from "~/models/sitemap.render";
+import {
+  renderSitemapDocument,
+  renderSitemapMarkup,
+} from "~/models/sitemap.render";
 
 describe("renderSitemapMarkup", () => {
   it("renders crawlable links in the initial HTML", () => {
@@ -36,5 +39,36 @@ describe("renderSitemapMarkup", () => {
     );
     expect(html).toContain("SEO &lt;Boost&gt;");
     expect(html).not.toContain("<script");
+  });
+
+  it("renders a complete preview document with storefront-relative links", () => {
+    const html = renderSitemapDocument(
+      {
+        config: DEFAULT_SITEMAP_CONFIG,
+        manifest: {
+          version: 1,
+          generatedAt: "2026-05-29T12:00:00.000Z",
+          locale: "en",
+          totalLinks: 1,
+          maxLinks: 5000,
+          chunks: { products: 1 },
+          truncated: false,
+          truncatedSections: [],
+          warnings: [],
+        },
+        sections: [
+          {
+            key: "products",
+            title: "Products",
+            links: [{ title: "Compass", url: "/products/compass" }],
+          },
+        ],
+      },
+      "example.myshopify.com",
+    );
+
+    expect(html).toContain("<!doctype html>");
+    expect(html).toContain('<base href="https://example.myshopify.com">');
+    expect(html).toContain('href="/products/compass"');
   });
 });

@@ -136,6 +136,29 @@ export function renderSitemapLiquid(snapshot: SitemapSnapshot) {
   return `{% layout none %}<style>${SITEMAP_STYLES}</style>${renderSitemapMarkup(snapshot)}`;
 }
 
+export function renderSitemapDocument(
+  snapshot: SitemapSnapshot,
+  shopDomain: string,
+) {
+  const safeShopDomain = escapeAttribute(shopDomain);
+
+  return `<!doctype html>
+<html lang="${escapeAttribute(snapshot.manifest.locale || "en")}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <base href="https://${safeShopDomain}">
+    <title>Sitemap preview</title>
+    <style>
+      html { background: #fff; }
+      body { margin: 0; padding: 24px; }
+      ${SITEMAP_STYLES}
+    </style>
+  </head>
+  <body>${renderSitemapMarkup(snapshot)}</body>
+</html>`;
+}
+
 function renderSitemapLink(link: SitemapLink, showLastUpdated: boolean) {
   const updated =
     showLastUpdated && link.updatedAt
