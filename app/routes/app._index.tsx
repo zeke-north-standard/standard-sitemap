@@ -51,18 +51,32 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (intent === "save-config") {
       const config = configFromFormData(formData);
       await saveSitemapConfig(session.shop, config);
-      await syncSitemapForShop({ admin, shop: session.shop, config });
-      return data({ message: "Style settings saved and sitemap refreshed." });
+      const snapshot = await syncSitemapForShop({
+        admin,
+        shop: session.shop,
+        config,
+      });
+      return data({
+        message:
+          snapshot.manifest.warnings.length > 0
+            ? "Settings saved. The sitemap refreshed with a warning."
+            : "Style settings saved and sitemap refreshed.",
+      });
     }
 
     if (intent === "sync") {
       const state = await getSitemapState(session.shop);
-      await syncSitemapForShop({
+      const snapshot = await syncSitemapForShop({
         admin,
         shop: session.shop,
         config: state.config,
       });
-      return data({ message: "Sitemap synced successfully." });
+      return data({
+        message:
+          snapshot.manifest.warnings.length > 0
+            ? "Sitemap synced with a warning."
+            : "Sitemap synced successfully.",
+      });
     }
 
     if (intent === "setup-page") {
@@ -110,13 +124,18 @@ export default function Index() {
                 <s-heading>Storefront sitemap</s-heading>
                 <s-text>
                   Publish a crawlable HTML sitemap at the app proxy URL, or add
-                  the app block to a dedicated page template in the theme editor.
+                  the app block to a dedicated page template in the theme
+                  editor.
                 </s-text>
                 <s-stack direction="inline" gap="base">
                   <s-button href={proxyUrl} target="_blank">
                     Open sitemap
                   </s-button>
-                  <s-button href={themeEditorUrl} target="_blank" variant="secondary">
+                  <s-button
+                    href={themeEditorUrl}
+                    target="_blank"
+                    variant="secondary"
+                  >
                     Open theme editor
                   </s-button>
                 </s-stack>
@@ -133,7 +152,10 @@ export default function Index() {
                 <s-stack gap="base">
                   <input type="hidden" name="intent" value="save-config" />
                   <s-heading>Style and sections</s-heading>
-                  <s-grid gridTemplateColumns="repeat(2, minmax(0, 1fr))" gap="base">
+                  <s-grid
+                    gridTemplateColumns="repeat(2, minmax(0, 1fr))"
+                    gap="base"
+                  >
                     <s-select
                       label="Layout preset"
                       name="layout"
@@ -250,6 +272,11 @@ export default function Index() {
                 {state.lastSyncError ? (
                   <s-banner tone="critical">{state.lastSyncError}</s-banner>
                 ) : null}
+                {state.manifest?.warnings?.map((warning) => (
+                  <s-banner key={warning.section} tone="warning">
+                    {warning.message}
+                  </s-banner>
+                ))}
                 <Form method="post">
                   <input type="hidden" name="intent" value="sync" />
                   <s-button

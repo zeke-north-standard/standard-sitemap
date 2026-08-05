@@ -39,7 +39,9 @@ export interface ChunkedSitemap {
 }
 
 export function buildChunkedSitemap(input: BuildSnapshotInput): ChunkedSitemap {
-  const available = new Map(input.sections.map((section) => [section.key, section]));
+  const available = new Map(
+    input.sections.map((section) => [section.key, section]),
+  );
   const orderedSections = input.config.sectionOrder
     .filter((key) => input.config.enabledSections.includes(key))
     .filter((key) => SITEMAP_SECTIONS.includes(key));
@@ -87,6 +89,7 @@ export function buildChunkedSitemap(input: BuildSnapshotInput): ChunkedSitemap {
     chunks: manifestChunks,
     truncated,
     truncatedSections,
+    warnings: [],
   };
 
   return {

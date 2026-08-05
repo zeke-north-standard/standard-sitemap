@@ -16,11 +16,6 @@ export default function App() {
 
   return (
     <AppProvider apiKey={apiKey}>
-      <s-nav-menu>
-        <a href="/app" rel="home">
-          Sitemap
-        </a>
-      </s-nav-menu>
       <Outlet />
     </AppProvider>
   );

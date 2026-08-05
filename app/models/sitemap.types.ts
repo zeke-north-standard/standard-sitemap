@@ -54,6 +54,10 @@ export interface SitemapManifest {
   chunks: SitemapChunkManifest;
   truncated: boolean;
   truncatedSections: SitemapSectionKey[];
+  warnings: Array<{
+    section: SitemapSectionKey;
+    message: string;
+  }>;
 }
 
 export interface SitemapSnapshot {

@@ -18,6 +18,7 @@ const EMPTY_MANIFEST: SitemapManifest = {
   chunks: {},
   truncated: false,
   truncatedSections: [],
+  warnings: [],
 };
 
 export async function ensureSitemapShop(shop: string) {
@@ -68,7 +69,10 @@ export async function saveSitemapSnapshot(
         configJson: JSON.stringify(snapshot.config),
         manifestJson: JSON.stringify(snapshot.manifest),
         lastSyncedAt: new Date(snapshot.manifest.generatedAt),
-        lastSyncStatus: "SYNCED",
+        lastSyncStatus:
+          snapshot.manifest.warnings.length > 0
+            ? "SYNCED_WITH_WARNINGS"
+            : "SYNCED",
         lastSyncError: null,
         totalLinks: snapshot.manifest.totalLinks,
         truncated: snapshot.manifest.truncated,
@@ -77,7 +81,10 @@ export async function saveSitemapSnapshot(
         configJson: JSON.stringify(snapshot.config),
         manifestJson: JSON.stringify(snapshot.manifest),
         lastSyncedAt: new Date(snapshot.manifest.generatedAt),
-        lastSyncStatus: "SYNCED",
+        lastSyncStatus:
+          snapshot.manifest.warnings.length > 0
+            ? "SYNCED_WITH_WARNINGS"
+            : "SYNCED",
         lastSyncError: null,
         totalLinks: snapshot.manifest.totalLinks,
         truncated: snapshot.manifest.truncated,
@@ -116,7 +123,9 @@ export async function markSitemapSyncFailed(shop: string, error: unknown) {
   });
 }
 
-export async function loadSnapshotForShop(shop: string): Promise<SitemapSnapshot> {
+export async function loadSnapshotForShop(
+  shop: string,
+): Promise<SitemapSnapshot> {
   const record = await getSitemapState(shop);
   const chunks = await prisma.sitemapChunk.findMany({
     where: { shop },

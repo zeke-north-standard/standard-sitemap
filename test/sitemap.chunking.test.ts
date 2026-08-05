@@ -36,7 +36,10 @@ describe("buildChunkedSitemap", () => {
     ]);
     expect(result.snapshot.manifest.totalLinks).toBe(351);
     expect(result.snapshot.manifest.chunks.products).toBeGreaterThan(1);
-    expect(result.chunks.every((chunk) => chunk.links.length <= 300)).toBe(true);
+    expect(result.snapshot.manifest.warnings).toEqual([]);
+    expect(result.chunks.every((chunk) => chunk.links.length <= 300)).toBe(
+      true,
+    );
   });
 
   it("caps snapshots at the v1 link limit", () => {

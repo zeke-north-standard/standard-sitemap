@@ -15,6 +15,7 @@ describe("renderSitemapMarkup", () => {
         chunks: { products: 1 },
         truncated: false,
         truncatedSections: [],
+        warnings: [],
       },
       sections: [
         {
@@ -30,7 +31,9 @@ describe("renderSitemapMarkup", () => {
       ],
     });
 
-    expect(html).toContain('<a class="html-sitemap__link" href="/products/seo-boost">');
+    expect(html).toContain(
+      '<a class="html-sitemap__link" href="/products/seo-boost">',
+    );
     expect(html).toContain("SEO &lt;Boost&gt;");
     expect(html).not.toContain("<script");
   });

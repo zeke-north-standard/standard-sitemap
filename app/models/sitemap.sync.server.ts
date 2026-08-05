@@ -1,6 +1,10 @@
 import { DEFAULT_SITEMAP_CONFIG } from "./sitemap.config";
 import { buildChunkedSitemap } from "./sitemap.chunking";
-import { graphqlRequest, publicPathFromOnlineStoreUrl, type GraphqlClient } from "./shopify-graphql.server";
+import {
+  graphqlRequest,
+  publicPathFromOnlineStoreUrl,
+  type GraphqlClient,
+} from "./shopify-graphql.server";
 import { saveSitemapSnapshot } from "./sitemap.store.server";
 import type {
   SitemapConfig,
@@ -26,14 +30,14 @@ export async function syncSitemapForShop({
   shop,
   config = DEFAULT_SITEMAP_CONFIG,
 }: SyncInput) {
-  const [navigation, collections, products, pages, articles, policies] =
+  const [navigation, collections, products, pages, articles, policyResult] =
     await Promise.all([
       fetchNavigation(admin),
       fetchCollections(admin),
       fetchProducts(admin),
       fetchPages(admin),
       fetchArticles(admin),
-      fetchPolicies(admin),
+      fetchPoliciesWithWarning(admin),
     ]);
 
   const chunked = buildChunkedSitemap({
@@ -45,9 +49,12 @@ export async function syncSitemapForShop({
       { key: "products", links: products },
       { key: "pages", links: pages },
       { key: "articles", links: articles },
-      { key: "policies", links: policies },
+      { key: "policies", links: policyResult.links },
     ],
   });
+  chunked.snapshot.manifest.warnings = policyResult.warning
+    ? [policyResult.warning]
+    : [];
 
   await saveSitemapSnapshot(shop, chunked.snapshot, chunked.chunks);
   await writeAppDataMetafields(admin, chunked.snapshot, chunked.chunks);
@@ -61,7 +68,10 @@ async function fetchProducts(admin: GraphqlClient) {
       nodes.map((node) => ({
         title: node.title,
         handle: node.handle,
-        url: publicPathFromOnlineStoreUrl(node.onlineStoreUrl, `/products/${node.handle}`),
+        url: publicPathFromOnlineStoreUrl(
+          node.onlineStoreUrl,
+          `/products/${node.handle}`,
+        ),
         updatedAt: node.updatedAt,
       })),
   );
@@ -76,10 +86,7 @@ async function fetchCollections(admin: GraphqlClient) {
     nodes.map((node) => ({
       title: node.title,
       handle: node.handle,
-      url: publicPathFromOnlineStoreUrl(
-        node.onlineStoreUrl,
-        `/collections/${node.handle}`,
-      ),
+      url: `/collections/${node.handle}`,
       updatedAt: node.updatedAt,
     })),
   );
@@ -90,7 +97,7 @@ async function fetchPages(admin: GraphqlClient) {
     nodes.map((node) => ({
       title: node.title,
       handle: node.handle,
-      url: publicPathFromOnlineStoreUrl(node.onlineStoreUrl, `/pages/${node.handle}`),
+      url: `/pages/${node.handle}`,
       updatedAt: node.updatedAt,
     })),
   );
@@ -102,10 +109,7 @@ async function fetchArticles(admin: GraphqlClient) {
       nodes.map((node) => ({
         title: node.title,
         handle: node.handle,
-        url: publicPathFromOnlineStoreUrl(
-          node.onlineStoreUrl,
-          `/blogs/${node.blog.handle}/${node.handle}`,
-        ),
+        url: `/blogs/${node.blog.handle}/${node.handle}`,
         updatedAt: node.updatedAt,
       })),
   );
@@ -121,15 +125,50 @@ async function fetchNavigation(admin: GraphqlClient) {
 
 async function fetchPolicies(admin: GraphqlClient) {
   const data = await graphqlRequest<{
-    shop: Record<string, { title: string; url: string } | null>;
+    shop: {
+      shopPolicies: Array<{
+        title: string;
+        url: string;
+        updatedAt: string;
+      }>;
+    };
   }>(admin, POLICIES_QUERY);
 
-  return Object.values(data.shop)
-    .filter(Boolean)
-    .map((policy) => ({
-      title: policy.title,
-      url: publicPathFromOnlineStoreUrl(policy.url, policy.url),
-    }));
+  return data.shop.shopPolicies.map((policy) => ({
+    title: policy.title,
+    url: publicPathFromOnlineStoreUrl(policy.url, policy.url),
+    updatedAt: policy.updatedAt,
+  }));
+}
+
+async function fetchPoliciesWithWarning(admin: GraphqlClient) {
+  try {
+    return {
+      links: await fetchPolicies(admin),
+      warning: null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!isPolicyPermissionError(message)) throw error;
+
+    return {
+      links: [],
+      warning: {
+        section: "policies" as const,
+        message:
+          "Policies were skipped because the app has not been granted legal policy access yet.",
+      },
+    };
+  }
+}
+
+function isPolicyPermissionError(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("read_legal_policies") ||
+    normalized.includes("access denied") ||
+    normalized.includes("does not have access")
+  );
 }
 
 async function fetchConnection<T extends { title: string }>(
@@ -141,12 +180,10 @@ async function fetchConnection<T extends { title: string }>(
   let after: string | null = null;
 
   do {
-    const data = await graphqlRequest<Record<string, Connection<T>>>(
-      admin,
-      query,
-      { first: 250, after },
-    );
-    const connection = data[field];
+    const data: Record<string, Connection<T>> = await graphqlRequest<
+      Record<string, Connection<T>>
+    >(admin, query, { first: 250, after });
+    const connection: Connection<T> = data[field];
     nodes.push(...connection.nodes);
     after = connection.pageInfo.hasNextPage
       ? connection.pageInfo.endCursor
@@ -242,10 +279,15 @@ interface ProductNode {
   updatedAt: string;
 }
 
-interface CollectionNode extends ProductNode {}
-interface PageNode extends ProductNode {}
+interface CollectionNode {
+  title: string;
+  handle: string;
+  updatedAt: string | null;
+}
 
-interface ArticleNode extends ProductNode {
+interface PageNode extends CollectionNode {}
+
+interface ArticleNode extends CollectionNode {
   blog: {
     handle: string;
   };
@@ -292,7 +334,6 @@ const COLLECTIONS_QUERY = `#graphql
       nodes {
         title
         handle
-        onlineStoreUrl
         updatedAt
       }
       ${CONNECTION_FIELDS}
@@ -306,7 +347,6 @@ const PAGES_QUERY = `#graphql
       nodes {
         title
         handle
-        onlineStoreUrl
         updatedAt
       }
       ${CONNECTION_FIELDS}
@@ -320,7 +360,6 @@ const ARTICLES_QUERY = `#graphql
       nodes {
         title
         handle
-        onlineStoreUrl
         updatedAt
         blog {
           handle
@@ -353,11 +392,11 @@ const NAVIGATION_QUERY = `#graphql
 const POLICIES_QUERY = `#graphql
   query SitemapPolicies {
     shop {
-      privacyPolicy { title url }
-      refundPolicy { title url }
-      shippingPolicy { title url }
-      termsOfService { title url }
-      subscriptionPolicy { title url }
+      shopPolicies {
+        title
+        url
+        updatedAt
+      }
     }
   }
 `;
