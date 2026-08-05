@@ -9,7 +9,6 @@ import { saveSitemapSnapshot } from "./sitemap.store.server";
 import type {
   SitemapConfig,
   SitemapLink,
-  SitemapSection,
   SitemapSectionKey,
 } from "./sitemap.types";
 
@@ -117,10 +116,20 @@ async function fetchArticles(admin: GraphqlClient) {
 
 async function fetchNavigation(admin: GraphqlClient) {
   const data = await graphqlRequest<{
-    menu: { items: NavigationItem[] } | null;
+    menus: {
+      nodes: Array<{
+        handle: string;
+        isDefault: boolean;
+        items: NavigationItem[];
+      }>;
+    };
   }>(admin, NAVIGATION_QUERY);
+  const menu =
+    data.menus.nodes.find((candidate) => candidate.handle === "main-menu") ??
+    data.menus.nodes.find((candidate) => candidate.isDefault) ??
+    data.menus.nodes[0];
 
-  return flattenNavigationItems(data.menu?.items ?? []);
+  return flattenNavigationItems(menu?.items ?? []);
 }
 
 async function fetchPolicies(admin: GraphqlClient) {
@@ -254,12 +263,16 @@ async function writeAppDataMetafields(
 
 function flattenNavigationItems(items: NavigationItem[]): SitemapLink[] {
   return items.flatMap((item) => [
-    {
-      title: item.title,
-      url: item.url,
-      handle: null,
-      updatedAt: null,
-    },
+    ...(item.url
+      ? [
+          {
+            title: item.title,
+            url: item.url,
+            handle: null,
+            updatedAt: null,
+          },
+        ]
+      : []),
     ...flattenNavigationItems(item.items ?? []),
   ]);
 }
@@ -295,7 +308,7 @@ interface ArticleNode extends CollectionNode {
 
 interface NavigationItem {
   title: string;
-  url: string;
+  url: string | null;
   items?: NavigationItem[];
 }
 
@@ -372,16 +385,20 @@ const ARTICLES_QUERY = `#graphql
 
 const NAVIGATION_QUERY = `#graphql
   query SitemapNavigation {
-    menu(handle: "main-menu") {
-      items {
-        title
-        url
+    menus(first: 50) {
+      nodes {
+        handle
+        isDefault
         items {
           title
           url
           items {
             title
             url
+            items {
+              title
+              url
+            }
           }
         }
       }

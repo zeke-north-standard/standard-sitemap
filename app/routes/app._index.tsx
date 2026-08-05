@@ -217,7 +217,7 @@ export default function Index() {
                       were omitted.
                     </s-banner>
                   ) : null}
-                  {state.lastSyncError ? (
+                  {state.lastSyncError && !errorMessage ? (
                     <s-banner tone="critical">{state.lastSyncError}</s-banner>
                   ) : null}
                   {state.manifest?.warnings?.map((warning) => (
