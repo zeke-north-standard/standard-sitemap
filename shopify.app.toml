@@ -10,6 +10,7 @@ automatically_update_urls_on_dev = false
 
 [access_scopes]
 scopes = "read_products,read_content,write_content,read_online_store_navigation,write_app_proxy"
+optional_scopes = ["read_legal_policies"]
 
 [auth]
 redirect_urls = [

@@ -4,8 +4,11 @@ import {
   useActionData,
   useLoaderData,
   useNavigation,
+  useSubmit,
 } from "react-router";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useState } from "react";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { configFromFormData } from "~/models/sitemap.config";
 import { findOrCreateSitemapPage } from "~/models/sitemap.page.server";
 import { verifySitemapPublication } from "~/models/sitemap.publication.server";
@@ -122,6 +125,13 @@ export default function Index() {
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const submit = useSubmit();
+  const shopify = useAppBridge();
+  const [isRequestingPolicyAccess, setIsRequestingPolicyAccess] =
+    useState(false);
+  const [policyAccessMessage, setPolicyAccessMessage] = useState<string | null>(
+    null,
+  );
   const config = state.config;
   const activeIntent = navigation.formData?.get("intent");
   const isSubmittingIntent = (intent: string) =>
@@ -133,6 +143,30 @@ export default function Index() {
   const verification =
     actionData && "verification" in actionData ? actionData.verification : null;
   const hasSnapshot = state.totalLinks > 0;
+
+  const requestPolicyAccess = async () => {
+    setIsRequestingPolicyAccess(true);
+    setPolicyAccessMessage(null);
+
+    try {
+      const response = await shopify.scopes.request(["read_legal_policies"]);
+      if (response.result === "granted-all") {
+        setIsRequestingPolicyAccess(false);
+        submit({ intent: "sync" }, { method: "post" });
+        return;
+      }
+
+      setPolicyAccessMessage(
+        "Policy access was not granted. Policies will remain excluded from the sitemap.",
+      );
+    } catch {
+      setPolicyAccessMessage(
+        "Shopify could not open the permission prompt. Confirm that policy access is enabled for the current app version.",
+      );
+    } finally {
+      setIsRequestingPolicyAccess(false);
+    }
+  };
 
   return (
     <s-page heading="Standard HTML Sitemap">
@@ -220,11 +254,30 @@ export default function Index() {
                   {state.lastSyncError && !errorMessage ? (
                     <s-banner tone="critical">{state.lastSyncError}</s-banner>
                   ) : null}
-                  {state.manifest?.warnings?.map((warning) => (
-                    <s-banner key={warning.section} tone="warning">
-                      {warning.message}
-                    </s-banner>
-                  ))}
+                  {state.manifest?.warnings?.map((warning) =>
+                    warning.section === "policies" ? (
+                      <s-banner key={warning.section} tone="warning">
+                        <s-stack gap="small">
+                          <s-text>{warning.message}</s-text>
+                          <s-button
+                            onClick={requestPolicyAccess}
+                            loading={
+                              isRequestingPolicyAccess ? true : undefined
+                            }
+                          >
+                            Grant policy access
+                          </s-button>
+                          {policyAccessMessage ? (
+                            <s-text>{policyAccessMessage}</s-text>
+                          ) : null}
+                        </s-stack>
+                      </s-banner>
+                    ) : (
+                      <s-banner key={warning.section} tone="warning">
+                        {warning.message}
+                      </s-banner>
+                    ),
+                  )}
                 </s-stack>
               </s-box>
 
