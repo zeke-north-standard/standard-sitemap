@@ -15,7 +15,7 @@ export default function App() {
   const { apiKey } = useLoaderData<typeof loader>();
 
   return (
-    <AppProvider apiKey={apiKey}>
+    <AppProvider embedded apiKey={apiKey}>
       <Outlet />
     </AppProvider>
   );
