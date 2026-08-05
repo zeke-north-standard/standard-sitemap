@@ -88,43 +88,47 @@ export default function Index() {
   const navigation = useNavigation();
   const isSubmitting = navigation.state !== "idle";
   const config = state.config;
+  const successMessage =
+    actionData && "message" in actionData ? actionData.message : null;
+  const errorMessage =
+    actionData && "error" in actionData ? actionData.error : null;
 
   return (
     <s-page heading="Dynamic HTML Sitemap">
       <s-section>
         <s-grid gridTemplateColumns="2fr 1fr" gap="base">
           <s-stack gap="base">
-            {actionData?.message ? (
-              <s-banner tone="success">{actionData.message}</s-banner>
+            {successMessage ? (
+              <s-banner tone="success">{successMessage}</s-banner>
             ) : null}
-            {actionData?.error ? (
-              <s-banner tone="critical">{actionData.error}</s-banner>
+            {errorMessage ? (
+              <s-banner tone="critical">{errorMessage}</s-banner>
             ) : null}
 
-            <s-card>
+            <s-box>
               <s-stack gap="base">
                 <s-heading>Storefront sitemap</s-heading>
                 <s-text>
                   Publish a crawlable HTML sitemap at the app proxy URL, or add
                   the app block to a dedicated page template in the theme editor.
                 </s-text>
-                <s-inline gap="base">
+                <s-stack direction="inline" gap="base">
                   <s-button href={proxyUrl} target="_blank">
                     Open sitemap
                   </s-button>
                   <s-button href={themeEditorUrl} target="_blank" variant="secondary">
                     Open theme editor
                   </s-button>
-                </s-inline>
+                </s-stack>
                 <s-banner tone="warning">
                   Add the theme block only to a dedicated sitemap page template.
                   Adding it to the default page template can show the sitemap on
                   every normal page that uses that template.
                 </s-banner>
               </s-stack>
-            </s-card>
+            </s-box>
 
-            <s-card>
+            <s-box>
               <Form method="post">
                 <s-stack gap="base">
                   <input type="hidden" name="intent" value="save-config" />
@@ -133,7 +137,7 @@ export default function Index() {
                     <s-select
                       label="Layout preset"
                       name="layout"
-                      defaultValue={config.layout}
+                      value={config.layout}
                     >
                       <s-option value="compact">Compact</s-option>
                       <s-option value="directory">Directory</s-option>
@@ -142,7 +146,7 @@ export default function Index() {
                     <s-select
                       label="Columns"
                       name="columns"
-                      defaultValue={String(config.columns)}
+                      value={String(config.columns)}
                     >
                       <s-option value="1">1</s-option>
                       <s-option value="2">2</s-option>
@@ -152,17 +156,17 @@ export default function Index() {
                     <s-text-field
                       label="Accent color"
                       name="accentColor"
-                      defaultValue={config.accentColor}
+                      value={config.accentColor}
                     />
                     <s-text-field
                       label="Text color"
                       name="textColor"
-                      defaultValue={config.textColor}
+                      value={config.textColor}
                     />
                     <s-select
                       label="Background"
                       name="backgroundMode"
-                      defaultValue={config.backgroundMode}
+                      value={config.backgroundMode}
                     >
                       <s-option value="transparent">Transparent</s-option>
                       <s-option value="soft">Soft</s-option>
@@ -171,7 +175,7 @@ export default function Index() {
                     <s-select
                       label="Heading size"
                       name="headingSize"
-                      defaultValue={config.headingSize}
+                      value={config.headingSize}
                     >
                       <s-option value="small">Small</s-option>
                       <s-option value="medium">Medium</s-option>
@@ -180,7 +184,7 @@ export default function Index() {
                     <s-select
                       label="Spacing"
                       name="spacingDensity"
-                      defaultValue={config.spacingDensity}
+                      value={config.spacingDensity}
                     >
                       <s-option value="tight">Tight</s-option>
                       <s-option value="balanced">Balanced</s-option>
@@ -188,40 +192,45 @@ export default function Index() {
                     </s-select>
                   </s-grid>
                   <s-checkbox
+                    label="Show counts"
                     name="showCounts"
-                    defaultChecked={config.showCounts}
-                  >
-                    Show counts
-                  </s-checkbox>
+                    checked={config.showCounts ? true : undefined}
+                  />
                   <s-checkbox
+                    label="Show last updated dates"
                     name="showLastUpdated"
-                    defaultChecked={config.showLastUpdated}
-                  >
-                    Show last updated dates
-                  </s-checkbox>
+                    checked={config.showLastUpdated ? true : undefined}
+                  />
                   <s-divider />
                   <s-heading>Included sections</s-heading>
                   <s-stack gap="small">
                     {SITEMAP_SECTIONS.map((section) => (
                       <s-checkbox
                         key={section}
+                        label={sectionLabel(section)}
                         name={`enabled:${section}`}
-                        defaultChecked={config.enabledSections.includes(section)}
-                      >
-                        {sectionLabel(section)}
-                      </s-checkbox>
+                        checked={
+                          config.enabledSections.includes(section)
+                            ? true
+                            : undefined
+                        }
+                      />
                     ))}
                   </s-stack>
-                  <s-button variant="primary" type="submit" loading={isSubmitting}>
+                  <s-button
+                    variant="primary"
+                    type="submit"
+                    loading={isSubmitting ? true : undefined}
+                  >
                     Save settings
                   </s-button>
                 </s-stack>
               </Form>
-            </s-card>
+            </s-box>
           </s-stack>
 
           <s-stack gap="base">
-            <s-card>
+            <s-box>
               <s-stack gap="base">
                 <s-heading>Sync status</s-heading>
                 <s-text>Status: {state.lastSyncStatus}</s-text>
@@ -243,14 +252,17 @@ export default function Index() {
                 ) : null}
                 <Form method="post">
                   <input type="hidden" name="intent" value="sync" />
-                  <s-button type="submit" loading={isSubmitting}>
+                  <s-button
+                    type="submit"
+                    loading={isSubmitting ? true : undefined}
+                  >
                     Sync now
                   </s-button>
                 </Form>
               </s-stack>
-            </s-card>
+            </s-box>
 
-            <s-card>
+            <s-box>
               <s-stack gap="base">
                 <s-heading>Guided page setup</s-heading>
                 <s-text>
@@ -263,12 +275,15 @@ export default function Index() {
                 ) : null}
                 <Form method="post">
                   <input type="hidden" name="intent" value="setup-page" />
-                  <s-button type="submit" loading={isSubmitting}>
+                  <s-button
+                    type="submit"
+                    loading={isSubmitting ? true : undefined}
+                  >
                     Create or detect page
                   </s-button>
                 </Form>
               </s-stack>
-            </s-card>
+            </s-box>
           </s-stack>
         </s-grid>
       </s-section>
