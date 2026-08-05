@@ -5,7 +5,9 @@ node_modules
 /build
 /dist
 /.cache
+/.react-router
 /.shopify
+/.vercel
 *.sqlite
 *.sqlite-journal
 coverage
