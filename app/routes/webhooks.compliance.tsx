@@ -6,12 +6,14 @@ import { authenticate } from "~/shopify.server";
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, topic } = await authenticate.webhook(request);
 
-  await Promise.all([
-    prisma.session.deleteMany({ where: { shop } }),
-    prisma.sitemapShop.deleteMany({ where: { shop } }),
-    deleteMarketingSubscription(shop),
-  ]);
+  if (String(topic) === "SHOP_REDACT") {
+    await Promise.all([
+      prisma.session.deleteMany({ where: { shop } }),
+      prisma.sitemapShop.deleteMany({ where: { shop } }),
+      deleteMarketingSubscription(shop),
+    ]);
+  }
 
-  console.log(`Received ${topic} webhook for ${shop}`);
-  return new Response();
+  console.log(`Processed ${topic} compliance webhook for ${shop}`);
+  return new Response(null, { status: 200 });
 };

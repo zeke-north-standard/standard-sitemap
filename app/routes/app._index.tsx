@@ -9,6 +9,11 @@ import {
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useState } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import {
+  getMarketingSubscription,
+  subscribeToMarketing,
+  unsubscribeFromMarketing,
+} from "~/models/marketing-consent.server";
 import { configFromFormData } from "~/models/sitemap.config";
 import { findOrCreateSitemapPage } from "~/models/sitemap.page.server";
 import { verifySitemapPublication } from "~/models/sitemap.publication.server";
@@ -28,9 +33,10 @@ import { authenticate } from "~/shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const [state, snapshot] = await Promise.all([
+  const [state, snapshot, marketingSubscription] = await Promise.all([
     getSitemapState(session.shop),
     loadSnapshotForShop(session.shop),
+    getMarketingSubscription(session.shop),
   ]);
   const proxyUrl = `https://${session.shop}/apps/html-sitemap`;
   const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor?template=page&addAppBlockId=${process.env.SHOPIFY_API_KEY}/html-sitemap`;
@@ -42,6 +48,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     sectionCounts: Object.fromEntries(
       snapshot.sections.map((section) => [section.key, section.links.length]),
     ) as Record<SitemapSectionKey, number>,
+    marketing: marketingSubscription
+      ? {
+          email: marketingSubscription.email,
+          isSubscribed: marketingSubscription.status === "SUBSCRIBED",
+          consentedAt: marketingSubscription.consentedAt.toISOString(),
+        }
+      : null,
     state: {
       config: state.config,
       manifest: state.manifest,
@@ -106,6 +119,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
     }
 
+    if (intent === "subscribe-marketing") {
+      if (formData.get("marketingConsent") !== "on") {
+        return data(
+          { error: "Confirm that you agree to receive email updates." },
+          { status: 400 },
+        );
+      }
+
+      await subscribeToMarketing(session.shop, formData.get("email"));
+      return data({
+        message: "You are subscribed to North Standard SEO updates.",
+      });
+    }
+
+    if (intent === "unsubscribe-marketing") {
+      await unsubscribeFromMarketing(session.shop);
+      return data({
+        message: "You have been unsubscribed from email updates.",
+      });
+    }
+
     return data({ error: "Unknown action." }, { status: 400 });
   } catch (error) {
     if (intent === "sync" || intent === "save-config") {
@@ -121,8 +155,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Index() {
-  const { state, proxyUrl, themeEditorUrl, previewHtml, sectionCounts } =
-    useLoaderData<typeof loader>();
+  const {
+    state,
+    proxyUrl,
+    themeEditorUrl,
+    previewHtml,
+    sectionCounts,
+    marketing,
+  } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submit = useSubmit();
@@ -309,6 +349,91 @@ export default function Index() {
                   )}
                 </s-stack>
               </s-box>
+
+              {hasSnapshot ? (
+                <>
+                  <s-divider />
+                  <s-box>
+                    <s-stack gap="base">
+                      <s-heading>SEO updates</s-heading>
+                      {marketing?.isSubscribed ? (
+                        <>
+                          <s-banner tone="success">
+                            Updates are going to {marketing.email}.
+                          </s-banner>
+                          <s-text>
+                            Occasional practical SEO guidance and news about new
+                            North Standard tools.
+                          </s-text>
+                          <Form method="post">
+                            <input
+                              type="hidden"
+                              name="intent"
+                              value="unsubscribe-marketing"
+                            />
+                            <s-button
+                              type="submit"
+                              loading={
+                                isSubmittingIntent("unsubscribe-marketing")
+                                  ? true
+                                  : undefined
+                              }
+                            >
+                              Unsubscribe
+                            </s-button>
+                          </Form>
+                        </>
+                      ) : (
+                        <Form method="post">
+                          <s-stack gap="base">
+                            <input
+                              type="hidden"
+                              name="intent"
+                              value="subscribe-marketing"
+                            />
+                            <s-text>
+                              Get occasional practical SEO guidance and news
+                              about new North Standard tools.
+                            </s-text>
+                            <s-email-field
+                              label="Business email"
+                              name="email"
+                              value={marketing?.email ?? ""}
+                              autocomplete="email"
+                            />
+                            <s-checkbox
+                              name="marketingConsent"
+                              value="on"
+                              label="I agree to receive marketing emails from North Standard."
+                            />
+                            <s-button
+                              type="submit"
+                              loading={
+                                isSubmittingIntent("subscribe-marketing")
+                                  ? true
+                                  : undefined
+                              }
+                            >
+                              Subscribe
+                            </s-button>
+                            <s-text>
+                              Unsubscribe anytime. Read our{" "}
+                              <a
+                                href="/privacy"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Privacy Policy
+                              </a>
+                              .
+                            </s-text>
+                          </s-stack>
+                        </Form>
+                      )}
+                    </s-stack>
+                  </s-box>
+                </>
+              ) : null}
             </s-stack>
 
             <s-stack gap="large">

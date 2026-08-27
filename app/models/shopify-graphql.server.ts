@@ -1,5 +1,5 @@
 export interface GraphqlClient {
-  graphql<T = unknown>(
+  graphql(
     query: string,
     options?: { variables?: Record<string, unknown> },
   ): Promise<Response>;
@@ -10,7 +10,7 @@ export async function graphqlRequest<T>(
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
-  const response = await client.graphql<T>(query, { variables });
+  const response = await client.graphql(query, { variables });
   const json = (await response.json()) as {
     data?: T;
     errors?: Array<{ message: string }>;

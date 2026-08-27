@@ -33,6 +33,10 @@ uri = "/webhooks/app/scopes_update"
 topics = ["products/create", "products/update", "products/delete", "collections/create", "collections/update", "collections/delete"]
 uri = "/webhooks/sitemap/changed"
 
+[[webhooks.subscriptions]]
+compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+uri = "/webhooks/compliance"
+
 [app_proxy]
 url = "https://north-standard-html-sitemap.vercel.app/proxy/html-sitemap"
 subpath = "html-sitemap"
