@@ -1,16 +1,15 @@
-# This file stores configurations for your Shopify app.
-client_id = ""
-name = "Dynamic HTML Sitemap"
-handle = "dynamic-html-sitemap"
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "b34959b393e0984ac85021b60d4c969e"
 application_url = "https://north-standard-html-sitemap.vercel.app"
 embedded = true
-
-[build]
-automatically_update_urls_on_dev = false
+name = "Standard HTML Sitemap"
 
 [access_scopes]
-scopes = "read_products,read_content,write_content,read_online_store_navigation,write_app_proxy"
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_app_proxy,read_online_store_navigation,read_products,read_content,write_content"
 optional_scopes = ["read_legal_policies"]
+use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
@@ -31,13 +30,10 @@ topics = ["app/scopes_update"]
 uri = "/webhooks/app/scopes_update"
 
 [[webhooks.subscriptions]]
-topics = ["products/create", "products/update", "products/delete", "collections/create", "collections/update", "collections/delete", "pages/create", "pages/update", "pages/delete", "articles/create", "articles/update", "articles/delete"]
+topics = ["products/create", "products/update", "products/delete", "collections/create", "collections/update", "collections/delete"]
 uri = "/webhooks/sitemap/changed"
 
 [app_proxy]
-url = "/proxy/html-sitemap"
-prefix = "apps"
+url = "https://north-standard-html-sitemap.vercel.app/proxy/html-sitemap"
 subpath = "html-sitemap"
-
-[pos]
-embedded = false
+prefix = "apps"
