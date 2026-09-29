@@ -60,13 +60,20 @@ model SitemapChunk {
 }
 
 model MarketingSubscription {
-  shop           String    @id
-  email          String
-  status         String    @default("SUBSCRIBED")
-  consentedAt    DateTime
-  consentSource  String
-  consentVersion String
-  unsubscribedAt DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  shop               String    @id
+  email              String
+  status             String    @default("SUBSCRIBED")
+  consentedAt        DateTime
+  consentSource      String
+  consentVersion     String
+  unsubscribedAt     DateTime?
+  unsubscribeToken   String?   @unique
+  resendContactId    String?
+  resendSyncStatus   String    @default("NOT_SYNCED")
+  resendSyncError    String?
+  resendSyncedAt     DateTime?
+  welcomeEmailId     String?
+  welcomeEmailSentAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }

@@ -51,8 +51,9 @@ export default function PrivacyPolicy() {
       <h2>Service providers</h2>
       <p>
         We use Shopify to connect the app to stores, Vercel to host the service,
-        and a managed PostgreSQL provider to store app data. These providers
-        process information only as needed to deliver their services to us.
+        a managed PostgreSQL provider to store app data, and Resend to manage
+        opted-in contacts and deliver email. These providers process information
+        only as needed to deliver their services to us.
       </p>
 
       <h2>Retention and deletion</h2>

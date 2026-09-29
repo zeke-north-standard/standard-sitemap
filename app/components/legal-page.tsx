@@ -21,7 +21,9 @@ export function LegalPage({
       </header>
       <main className="legal-page">
         <h1>{title}</h1>
-        <p className="legal-date">Effective {effectiveDate}</p>
+        {effectiveDate ? (
+          <p className="legal-date">Effective {effectiveDate}</p>
+        ) : null}
         {children}
       </main>
     </>
@@ -42,6 +44,8 @@ const LEGAL_PAGE_STYLES = `
   .legal-page p, .legal-page li { font-size: 16px; line-height: 1.65; }
   .legal-page ul { padding-left: 24px; }
   .legal-date { color: #616161; margin-top: 0; }
+  .legal-button { background: #202223; border: 1px solid #202223; border-radius: 6px; color: #fff; cursor: pointer; font-size: 15px; font-weight: 700; padding: 11px 18px; }
+  .legal-button:focus-visible { outline: 3px solid #90c8f6; outline-offset: 2px; }
   @media (max-width: 560px) {
     .legal-header { align-items: flex-start; flex-direction: column; gap: 12px; }
     .legal-page { padding-top: 40px; }

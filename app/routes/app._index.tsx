@@ -12,6 +12,8 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import {
   getMarketingSubscription,
   subscribeToMarketing,
+  syncMarketingSubscription,
+  syncMarketingUnsubscribe,
   unsubscribeFromMarketing,
 } from "~/models/marketing-consent.server";
 import { configFromFormData } from "~/models/sitemap.config";
@@ -53,6 +55,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           email: marketingSubscription.email,
           isSubscribed: marketingSubscription.status === "SUBSCRIBED",
           consentedAt: marketingSubscription.consentedAt.toISOString(),
+          resendSyncStatus: marketingSubscription.resendSyncStatus,
+          resendSyncError: marketingSubscription.resendSyncError,
         }
       : null,
     state: {
@@ -128,16 +132,61 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       await subscribeToMarketing(session.shop, formData.get("email"));
-      return data({
-        message: "You are subscribed to North Standard SEO updates.",
-      });
+      try {
+        const sync = await syncMarketingSubscription(session.shop);
+        return data({
+          message: sync.welcomeSent
+            ? "You are subscribed. Check your inbox for a welcome email."
+            : "You are subscribed to North Standard SEO updates.",
+          warning: sync.welcomeSkipped
+            ? "Your contact is connected, but the welcome email is waiting for the business mailing address configuration."
+            : null,
+        });
+      } catch {
+        return data({
+          warning:
+            "Your consent was saved, but Resend could not be reached. Use Retry email sync below.",
+        });
+      }
+    }
+
+    if (intent === "sync-marketing") {
+      try {
+        const sync = await syncMarketingSubscription(session.shop);
+        return data({
+          message: sync.welcomeSent
+            ? "Email sync completed and the welcome email was sent."
+            : "Email sync completed.",
+          warning: sync.welcomeSkipped
+            ? "The contact is connected, but the welcome email is waiting for the business mailing address configuration."
+            : null,
+        });
+      } catch (error) {
+        return data(
+          {
+            error:
+              error instanceof Error
+                ? error.message
+                : "Email synchronization failed.",
+          },
+          { status: 502 },
+        );
+      }
     }
 
     if (intent === "unsubscribe-marketing") {
       await unsubscribeFromMarketing(session.shop);
-      return data({
-        message: "You have been unsubscribed from email updates.",
-      });
+      try {
+        await syncMarketingUnsubscribe(session.shop);
+        return data({
+          message: "You have been unsubscribed from email updates.",
+        });
+      } catch {
+        return data({
+          warning:
+            "You are unsubscribed in the app. Resend synchronization will need to be retried.",
+        });
+      }
     }
 
     return data({ error: "Unknown action." }, { status: 400 });
@@ -180,6 +229,8 @@ export default function Index() {
     actionData && "message" in actionData ? actionData.message : null;
   const errorMessage =
     actionData && "error" in actionData ? actionData.error : null;
+  const warningMessage =
+    actionData && "warning" in actionData ? actionData.warning : null;
   const verification =
     actionData && "verification" in actionData ? actionData.verification : null;
   const hasSnapshot = state.totalLinks > 0;
@@ -218,6 +269,9 @@ export default function Index() {
           ) : null}
           {errorMessage ? (
             <s-banner tone="critical">{errorMessage}</s-banner>
+          ) : null}
+          {warningMessage ? (
+            <s-banner tone="warning">{warningMessage}</s-banner>
           ) : null}
 
           <div className="sitemap-workflow-header">
@@ -365,6 +419,35 @@ export default function Index() {
                             Occasional practical SEO guidance and news about new
                             North Standard tools.
                           </s-text>
+                          {marketing.resendSyncStatus === "SYNCED" ? (
+                            <s-text>Connected to Resend.</s-text>
+                          ) : (
+                            <s-banner tone="warning">
+                              <s-stack gap="small">
+                                <s-text>
+                                  {marketing.resendSyncError ||
+                                    "This subscription has not been synchronized with Resend yet."}
+                                </s-text>
+                                <Form method="post">
+                                  <input
+                                    type="hidden"
+                                    name="intent"
+                                    value="sync-marketing"
+                                  />
+                                  <s-button
+                                    type="submit"
+                                    loading={
+                                      isSubmittingIntent("sync-marketing")
+                                        ? true
+                                        : undefined
+                                    }
+                                  >
+                                    Retry email sync
+                                  </s-button>
+                                </Form>
+                              </s-stack>
+                            </s-banner>
+                          )}
                           <Form method="post">
                             <input
                               type="hidden"
