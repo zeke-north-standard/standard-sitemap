@@ -43,7 +43,7 @@ Shopify app for a human-readable storefront HTML sitemap.
 
 ## Notes
 
-- V1 is a free beta and does not include Shopify Billing.
+- The service is free, includes up to 5,000 links per store, and does not use Shopify Billing.
 - The HTML sitemap complements Shopify's XML sitemap; it does not replace it.
 - The theme block should be added only to a dedicated page template.
 - Navigation menu sync uses `read_online_store_navigation`, which may require Partner Dashboard approval.

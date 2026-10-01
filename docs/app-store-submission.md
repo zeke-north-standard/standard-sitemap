@@ -18,16 +18,15 @@ copy, legal terms, and the live app before requesting Shopify review.
 
 ## Resolve before submission
 
-1. **Production positioning:** The app and Terms still call this a free beta.
-   Shopify cautions that beta submissions can be delayed or rejected. Decide
-   when the product is ready for production, then review and update the Terms,
-   dashboard limit wording, and README together. Have counsel review legal copy.
+1. **Production positioning:** The app, Terms, and README now describe a free
+   service. Review the Terms and free-service description before submitting,
+   ideally with legal counsel.
 2. **App name:** `North Standard Sitemap Creator` is the approved name and is
    exactly 30 characters, Shopify's limit. Verify that Shopify accepts it in
    the Dev Dashboard and use it in the listing and any media.
-3. **Icon:** `public/standard-sitemap-app-icon.png` is 1254 x 1254 pixels.
-   Export a 1200 x 1200 PNG from the approved design and upload it in the
-   Shopify Dev Dashboard. The repository image is not the listing upload.
+3. **Icon:** `public/standard-sitemap-app-icon.png` is a 1200 x 1200 PNG.
+   Upload this file in the Shopify Dev Dashboard. The repository image is not
+   automatically used as the App Store listing icon.
 4. **Storefront review:** Run a clean install on a second development store.
    Test OAuth, first sitemap generation, publication, manual refresh, optional
    permissions, footer-link insertion, theme block, uninstall, and reinstall.
@@ -42,11 +41,8 @@ copy, legal terms, and the live app before requesting Shopify review.
    Dashboard. Verify the postal address used in opt-in email, privacy
    practices, and Terms with your business. If Vercel has a `RESEND_REPLY_TO`
    variable, change its value to `support@northstandard.co` and redeploy.
-7. **Hosting:** The Vercel account is currently on Hobby. Vercel restricts it
-   to non-commercial personal use; this app's business and lead-generation
-   purpose likely requires Pro or another commercial-eligible host, even while
-   the app is free. Confirm with Vercel Support if needed. Verify database
-   capacity and production error monitoring as well.
+7. **Hosting:** The Vercel account has been upgraded to Pro. Verify database
+   capacity and production error monitoring before accepting public traffic.
 8. **Store scale:** The app intentionally caps a sitemap at 5,000 links. Decide
    whether that supports the merchants you want to serve. Describe the limit
    accurately in support and the listing if it remains.
@@ -58,14 +54,13 @@ copy, legal terms, and the live app before requesting Shopify review.
     shop redaction, the current code logs the failure and deletes the local
     subscription record. That loses the information needed for a retry. Make
     provider deletion retry-safe and verify the privacy workflow end to end.
-11. **Scope minimization:** `write_content` is required at install today, even
-    though it only supports the optional dedicated-page workflow. Consider
-    requesting it as an optional permission at the moment the merchant chooses
-    to create a page, then test both the grant and denial paths.
+11. **Scope minimization:** `write_content` is requested only when the
+    merchant chooses the optional dedicated-page workflow. Test both the
+    grant and denial paths on a clean installation.
 
 ## Draft listing copy
 
-Use these only after the production positioning is approved.
+Review this copy alongside the final app before submitting.
 
 - **Name:** North Standard Sitemap Creator
 - **App card subtitle:** Help shoppers explore your store with a clear HTML sitemap

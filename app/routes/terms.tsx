@@ -25,12 +25,13 @@ export default function TermsOfService() {
         not guarantee search rankings, indexing, traffic, or sales.
       </p>
 
-      <h2>Free beta</h2>
+      <h2>Free service</h2>
       <p>
-        The current service is offered as a free beta. Features, limits, and
-        availability may change as the product develops. We will provide notice
-        before charging for functionality that was previously free where
-        required by law or Shopify policy.
+        The service is currently free to use. It includes up to 5,000 sitemap
+        links per store and does not require a paid plan. Features and limits
+        may change over time. We will provide notice before charging for
+        functionality that was previously free where required by law or
+        Shopify policy.
       </p>
 
       <h2>Merchant responsibilities</h2>
@@ -43,8 +44,8 @@ export default function TermsOfService() {
 
       <h2>Availability and warranty</h2>
       <p>
-        We work to keep the app reliable, but beta software may contain errors
-        or experience interruptions. To the extent permitted by law, the service
+        We work to keep the app reliable, but software can contain errors or
+        experience interruptions. To the extent permitted by law, the service
         is provided as available without warranties of uninterrupted operation
         or fitness for a particular purpose.
       </p>

@@ -42,7 +42,7 @@ describe("buildChunkedSitemap", () => {
     );
   });
 
-  it("caps snapshots at the v1 link limit", () => {
+  it("caps snapshots at the link limit", () => {
     const result = buildChunkedSitemap({
       config: {
         ...DEFAULT_SITEMAP_CONFIG,

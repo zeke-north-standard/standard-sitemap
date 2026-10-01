@@ -246,6 +246,11 @@ export default function Index() {
   const [navigationAccessMessage, setNavigationAccessMessage] = useState<
     string | null
   >(null);
+  const [isRequestingContentAccess, setIsRequestingContentAccess] =
+    useState(false);
+  const [contentAccessMessage, setContentAccessMessage] = useState<
+    string | null
+  >(null);
   const [selectedMenuId, setSelectedMenuId] = useState(
     footerMenus[0]?.id ?? "",
   );
@@ -310,6 +315,30 @@ export default function Index() {
       );
     } finally {
       setIsRequestingNavigationAccess(false);
+    }
+  };
+
+  const setupPage = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    setIsRequestingContentAccess(true);
+    setContentAccessMessage(null);
+
+    try {
+      const response = await shopify.scopes.request(["write_content"]);
+      if (response.result === "granted-all") {
+        submit(form, { method: "post" });
+      } else {
+        setContentAccessMessage(
+          "Content access was not granted. You can create a Sitemap page manually in Shopify Pages, then add the app block.",
+        );
+      }
+    } catch {
+      setContentAccessMessage(
+        "Shopify could not open the content permission prompt. You can create a Sitemap page manually in Shopify Pages.",
+      );
+    } finally {
+      setIsRequestingContentAccess(false);
     }
   };
 
@@ -395,7 +424,7 @@ export default function Index() {
 
                   {state.truncated ? (
                     <s-banner tone="warning">
-                      The sitemap reached the 5,000-link beta limit. Some links
+                      The sitemap reached the 5,000-link limit. Some links
                       were omitted.
                     </s-banner>
                   ) : null}
@@ -704,17 +733,23 @@ export default function Index() {
                       Page /pages/{state.sitemapPageHandle} is ready.
                     </s-banner>
                   ) : null}
-                  <Form method="post">
+                  <Form method="post" onSubmit={setupPage}>
                     <input type="hidden" name="intent" value="setup-page" />
                     <s-button
                       type="submit"
                       loading={
-                        isSubmittingIntent("setup-page") ? true : undefined
+                        isRequestingContentAccess ||
+                        isSubmittingIntent("setup-page")
+                          ? true
+                          : undefined
                       }
                     >
                       Create or detect page
                     </s-button>
                   </Form>
+                  {contentAccessMessage ? (
+                    <s-banner tone="warning">{contentAccessMessage}</s-banner>
+                  ) : null}
                   <s-button href={themeEditorUrl} target="_blank">
                     Open theme editor
                   </s-button>
