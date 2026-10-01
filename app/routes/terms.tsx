@@ -2,10 +2,10 @@ import type { MetaFunction } from "react-router";
 import { LegalPage } from "~/components/legal-page";
 
 export const meta: MetaFunction = () => [
-  { title: "Terms of Service | Standard HTML Sitemap" },
+  { title: "Terms of Service | North Standard Sitemap Creator" },
   {
     name: "description",
-    content: "Terms for using the Standard HTML Sitemap Shopify app.",
+    content: "Terms for using the North Standard Sitemap Creator Shopify app.",
   },
 ];
 
@@ -13,7 +13,7 @@ export default function TermsOfService() {
   return (
     <LegalPage title="Terms of Service" effectiveDate="August 26, 2026">
       <p>
-        These terms govern use of Standard HTML Sitemap, provided by North
+        These terms govern use of North Standard Sitemap Creator, provided by North
         Standard Marketing. By installing or using the app, the merchant agrees
         to these terms.
       </p>
@@ -59,7 +59,7 @@ export default function TermsOfService() {
       <h2>Contact</h2>
       <p>
         Questions about these terms can be sent to{" "}
-        <a href="mailto:ezekiel@northstandard.co">ezekiel@northstandard.co</a>.
+        <a href="mailto:support@northstandard.co">support@northstandard.co</a>.
         See our <a href="/privacy">Privacy Policy</a> for information about data
         practices.
       </p>

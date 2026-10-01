@@ -3,7 +3,7 @@
 client_id = "b34959b393e0984ac85021b60d4c969e"
 application_url = "https://north-standard-html-sitemap.vercel.app"
 embedded = true
-name = "Standard HTML Sitemap"
+name = "North Standard Sitemap Creator"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes

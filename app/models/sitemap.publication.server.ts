@@ -15,7 +15,7 @@ export async function verifySitemapPublication(
   try {
     const response = await fetcher(url, {
       headers: {
-        "User-Agent": "Standard HTML Sitemap publication check",
+        "User-Agent": "North Standard Sitemap Creator publication check",
       },
       redirect: "follow",
     });

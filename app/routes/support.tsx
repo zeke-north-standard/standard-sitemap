@@ -2,10 +2,10 @@ import type { MetaFunction } from "react-router";
 import { LegalPage } from "~/components/legal-page";
 
 export const meta: MetaFunction = () => [
-  { title: "Support | Standard HTML Sitemap" },
+  { title: "Support | North Standard Sitemap Creator" },
   {
     name: "description",
-    content: "Setup and support for the Standard HTML Sitemap Shopify app.",
+    content: "Setup and support for the North Standard Sitemap Creator Shopify app.",
   },
 ];
 
@@ -13,14 +13,14 @@ export default function Support() {
   return (
     <LegalPage title="Support" effectiveDate="">
       <p>
-        Standard HTML Sitemap creates a human-readable sitemap for stores using
+        North Standard Sitemap Creator creates a human-readable sitemap for stores using
         Shopify&apos;s Online Store sales channel. For help, email{" "}
-        <a href="mailto:ezekiel@northstandard.co">ezekiel@northstandard.co</a>.
+        <a href="mailto:support@northstandard.co">support@northstandard.co</a>.
       </p>
 
       <h2>Get started</h2>
       <ol>
-        <li>Open Standard HTML Sitemap from Apps in Shopify admin.</li>
+        <li>Open North Standard Sitemap Creator from Apps in Shopify admin.</li>
         <li>Select Generate sitemap, then review the preview.</li>
         <li>
           Select Open live sitemap to view the published page at

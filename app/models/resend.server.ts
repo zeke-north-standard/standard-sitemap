@@ -136,7 +136,7 @@ export async function sendMarketingWelcomeEmail({
     process.env.RESEND_FROM_EMAIL?.trim() ||
     "North Standard <seo@updates.northstandard.co>";
   const replyTo =
-    process.env.RESEND_REPLY_TO?.trim() || "ezekiel@northstandard.co";
+    process.env.RESEND_REPLY_TO?.trim() || "support@northstandard.co";
 
   const response = await resendRequest<{ id: string }>(
     "/emails",
@@ -180,10 +180,10 @@ function welcomeEmailHtml({
       <div style="background:#ffffff;border:1px solid #dedede;padding:32px">
         <p style="margin:0 0 20px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">North Standard</p>
         <h1 style="font-size:28px;line-height:1.2;margin:0 0 18px">Your sitemap is ready.</h1>
-        <p style="font-size:16px;line-height:1.6;margin:0 0 16px">Standard HTML Sitemap is connected to ${escapeHtml(shop)}. We&apos;ll send occasional practical SEO guidance and updates about new North Standard tools.</p>
+        <p style="font-size:16px;line-height:1.6;margin:0 0 16px">North Standard Sitemap Creator is connected to ${escapeHtml(shop)}. We&apos;ll send occasional practical SEO guidance and updates about new North Standard tools.</p>
         <p style="font-size:16px;line-height:1.6;margin:0">You can keep managing your sitemap from Shopify Admin at any time.</p>
       </div>
-      <p style="color:#616161;font-size:12px;line-height:1.6;margin:20px 0 0">You received this because you opted in inside Standard HTML Sitemap. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#006fbb">Unsubscribe</a><br>${escapeHtml(postalAddress)}</p>
+      <p style="color:#616161;font-size:12px;line-height:1.6;margin:20px 0 0">You received this because you opted in inside North Standard Sitemap Creator. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#006fbb">Unsubscribe</a><br>${escapeHtml(postalAddress)}</p>
     </div>
   </body>
 </html>`;
@@ -198,7 +198,7 @@ function welcomeEmailText({
   unsubscribeUrl: string;
   postalAddress: string;
 }) {
-  return `Your sitemap is ready.\n\nStandard HTML Sitemap is connected to ${shop}. We'll send occasional practical SEO guidance and updates about new North Standard tools.\n\nYou received this because you opted in inside Standard HTML Sitemap. Unsubscribe: ${unsubscribeUrl}\n\n${postalAddress}`;
+  return `Your sitemap is ready.\n\nNorth Standard Sitemap Creator is connected to ${shop}. We'll send occasional practical SEO guidance and updates about new North Standard tools.\n\nYou received this because you opted in inside North Standard Sitemap Creator. Unsubscribe: ${unsubscribeUrl}\n\n${postalAddress}`;
 }
 
 function escapeHtml(value: string) {

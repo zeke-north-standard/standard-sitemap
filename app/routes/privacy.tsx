@@ -2,10 +2,10 @@ import type { MetaFunction } from "react-router";
 import { LegalPage } from "~/components/legal-page";
 
 export const meta: MetaFunction = () => [
-  { title: "Privacy Policy | Standard HTML Sitemap" },
+  { title: "Privacy Policy | North Standard Sitemap Creator" },
   {
     name: "description",
-    content: "Privacy practices for the Standard HTML Sitemap Shopify app.",
+    content: "Privacy practices for the North Standard Sitemap Creator Shopify app.",
   },
 ];
 
@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
   return (
     <LegalPage title="Privacy Policy" effectiveDate="August 26, 2026">
       <p>
-        North Standard Marketing operates Standard HTML Sitemap, a Shopify app
+        North Standard Marketing operates North Standard Sitemap Creator, a Shopify app
         that creates a human-readable sitemap for a merchant&apos;s storefront.
         This policy explains the information the app processes and the choices
         available to merchants.
@@ -75,7 +75,7 @@ export default function PrivacyPolicy() {
       <h2>Contact</h2>
       <p>
         Questions or privacy requests can be sent to{" "}
-        <a href="mailto:ezekiel@northstandard.co">ezekiel@northstandard.co</a>.
+        <a href="mailto:support@northstandard.co">support@northstandard.co</a>.
       </p>
     </LegalPage>
   );

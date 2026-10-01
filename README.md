@@ -1,4 +1,4 @@
-# Standard HTML Sitemap
+# North Standard Sitemap Creator
 
 Shopify app for a human-readable storefront HTML sitemap.
 

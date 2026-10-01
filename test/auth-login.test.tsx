@@ -10,7 +10,7 @@ describe("auth login route", () => {
   it("does not ask visitors to enter a store domain", () => {
     const markup = renderToStaticMarkup(<Login />);
 
-    expect(markup).toContain("Open Standard HTML Sitemap from Shopify");
+    expect(markup).toContain("Open North Standard Sitemap Creator from Shopify");
     expect(markup).toContain('href="/support"');
     expect(markup).not.toContain('name="shop"');
   });

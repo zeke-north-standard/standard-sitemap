@@ -314,7 +314,7 @@ export default function Index() {
   };
 
   return (
-    <s-page heading="Standard HTML Sitemap">
+    <s-page heading="North Standard Sitemap Creator">
       <style>{DASHBOARD_STYLES}</style>
       <s-section>
         <s-stack gap="large">

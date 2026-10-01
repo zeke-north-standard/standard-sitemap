@@ -59,7 +59,7 @@ const CREATE_SITEMAP_PAGE_MUTATION = `#graphql
     pageCreate(page: {
       title: "Sitemap",
       handle: "sitemap",
-      body: "<p>Add the Dynamic HTML Sitemap app block to a dedicated page template, or use the app proxy URL at /apps/html-sitemap.</p>",
+      body: "<p>Add the HTML sitemap app block to a dedicated page template, or use the app proxy URL at /apps/html-sitemap.</p>",
       isPublished: true
     }) {
       page {

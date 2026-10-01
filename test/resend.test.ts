@@ -13,6 +13,7 @@ describe("Resend integration", () => {
   afterEach(() => {
     delete process.env.RESEND_API_KEY;
     delete process.env.NORTH_STANDARD_POSTAL_ADDRESS;
+    delete process.env.RESEND_REPLY_TO;
     vi.restoreAllMocks();
   });
 
@@ -81,5 +82,28 @@ describe("Resend integration", () => {
       }),
     ).resolves.toEqual({ sent: false, reason: "POSTAL_ADDRESS_MISSING" });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the current app name and support reply-to address", async () => {
+    process.env.NORTH_STANDARD_POSTAL_ADDRESS = "123 Test St";
+    process.env.RESEND_REPLY_TO = "";
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: "email_1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await sendMarketingWelcomeEmail({
+      email: "owner@example.com",
+      shop: "example.myshopify.com",
+      unsubscribeToken: "token",
+      fetchImpl: fetchMock,
+    });
+
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(payload.reply_to).toBe("support@northstandard.co");
+    expect(payload.html).toContain("North Standard Sitemap Creator");
+    expect(payload.text).toContain("North Standard Sitemap Creator");
   });
 });

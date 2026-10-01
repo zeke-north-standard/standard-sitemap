@@ -14,7 +14,7 @@ import {
 } from "~/models/marketing-consent.server";
 
 export const meta: MetaFunction = () => [
-  { title: "Email Preferences | Standard HTML Sitemap" },
+  { title: "Email Preferences | North Standard Sitemap Creator" },
 ];
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {

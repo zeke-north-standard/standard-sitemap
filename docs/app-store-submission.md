@@ -22,10 +22,9 @@ copy, legal terms, and the live app before requesting Shopify review.
    Shopify cautions that beta submissions can be delayed or rejected. Decide
    when the product is ready for production, then review and update the Terms,
    dashboard limit wording, and README together. Have counsel review legal copy.
-2. **App name:** The current name, `Standard HTML Sitemap`, leads with generic
-   words. Consider `North Standard Sitemap` (or another distinctive,
-   brand-led name) and use the same name in Shopify configuration, app UI,
-   listing, support, and email. Shopify caps app names at 30 characters.
+2. **App name:** `North Standard Sitemap Creator` is the approved name and is
+   exactly 30 characters, Shopify's limit. Verify that Shopify accepts it in
+   the Dev Dashboard and use it in the listing and any media.
 3. **Icon:** `public/standard-sitemap-app-icon.png` is 1254 x 1254 pixels.
    Export a 1200 x 1200 PNG from the approved design and upload it in the
    Shopify Dev Dashboard. The repository image is not the listing upload.
@@ -38,13 +37,16 @@ copy, legal terms, and the live app before requesting Shopify review.
    actual UI and storefront (no browser chrome or personal data). Record an
    English screencast covering install, generation, publication, and footer
    setup. Shopify requires a setup screencast for review.
-6. **Business details:** Add a support contact, submission email, and emergency
-   developer email and phone in the Dev Dashboard. Verify the postal address
-   used in opt-in email, privacy practices, and Terms with your business.
-7. **Hosting:** Check the Vercel account plan. Hobby is restricted to
-   non-commercial personal use; use a commercial-eligible plan or host before
-   launching this as a business app. Verify database capacity and production
-   error monitoring as well.
+6. **Business details:** Use `support@northstandard.co` for merchant support.
+   Add a submission email and emergency developer email and phone in the Dev
+   Dashboard. Verify the postal address used in opt-in email, privacy
+   practices, and Terms with your business. If Vercel has a `RESEND_REPLY_TO`
+   variable, change its value to `support@northstandard.co` and redeploy.
+7. **Hosting:** The Vercel account is currently on Hobby. Vercel restricts it
+   to non-commercial personal use; this app's business and lead-generation
+   purpose likely requires Pro or another commercial-eligible host, even while
+   the app is free. Confirm with Vercel Support if needed. Verify database
+   capacity and production error monitoring as well.
 8. **Store scale:** The app intentionally caps a sitemap at 5,000 links. Decide
    whether that supports the merchants you want to serve. Describe the limit
    accurately in support and the listing if it remains.
@@ -63,9 +65,9 @@ copy, legal terms, and the live app before requesting Shopify review.
 
 ## Draft listing copy
 
-Use these only after the app name and production positioning are approved.
+Use these only after the production positioning is approved.
 
-- **Name:** North Standard Sitemap
+- **Name:** North Standard Sitemap Creator
 - **App card subtitle:** Help shoppers explore your store with a clear HTML sitemap
 - **Introduction:** Create a browseable sitemap that fits your storefront and helps visitors find content.
 - **Details:** Create a human-readable HTML sitemap for your Online Store from published products, collections, pages, articles, policies, and navigation links. Preview the result, choose its sections and appearance, and publish it at a storefront URL. Add a sitemap link to a footer menu from the app or place the optional app block on a dedicated page. Refresh after changing pages, articles, policies, or navigation. The sitemap complements, but does not replace, Shopify's XML sitemap. A 5,000-link limit applies.
@@ -78,6 +80,7 @@ Use these only after the app name and production positioning are approved.
 - **Sales channel requirement:** Merchant must have Online Store.
 - **Privacy policy URL:** https://north-standard-html-sitemap.vercel.app/privacy
 - **Support URL:** https://north-standard-html-sitemap.vercel.app/support
+- **Support email:** support@northstandard.co
 - **Terms URL:** https://north-standard-html-sitemap.vercel.app/terms
 
 Do not promise rankings, indexing, sales, or automatic refresh for every
@@ -111,4 +114,4 @@ test and production-readiness items above pass.
 References: [App Store requirements](https://shopify.dev/docs/apps/launch/shopify-app-store/app-store-requirements),
 [submission process](https://shopify.dev/docs/apps/launch/app-store-review/submit-app-for-review),
 [listing guidance](https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices),
-[Vercel Hobby plan](https://vercel.com/docs/plans/hobby).
+[Vercel commercial-use guidelines](https://vercel.com/docs/limits/fair-use-guidelines).

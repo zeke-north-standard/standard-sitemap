@@ -13,7 +13,7 @@ export function LegalPage({
     <>
       <style>{LEGAL_PAGE_STYLES}</style>
       <header className="legal-header">
-        <a href="/">Standard HTML Sitemap</a>
+        <a href="/">North Standard Sitemap Creator</a>
         <nav aria-label="Legal">
           <a href="/support">Support</a>
           <a href="/privacy">Privacy</a>
