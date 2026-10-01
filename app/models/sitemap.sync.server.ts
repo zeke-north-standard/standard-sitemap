@@ -1,5 +1,5 @@
 import { DEFAULT_SITEMAP_CONFIG } from "./sitemap.config";
-import { buildChunkedSitemap } from "./sitemap.chunking";
+import { MAX_TOTAL_LINKS, buildChunkedSitemap } from "./sitemap.chunking";
 import {
   graphqlRequest,
   publicPathFromOnlineStoreUrl,
@@ -197,9 +197,9 @@ async function fetchConnection<T extends { title: string }>(
     after = connection.pageInfo.hasNextPage
       ? connection.pageInfo.endCursor
       : null;
-  } while (after && nodes.length < 5000);
+  } while (after && nodes.length <= MAX_TOTAL_LINKS);
 
-  return nodes;
+  return nodes.slice(0, MAX_TOTAL_LINKS + 1);
 }
 
 async function writeAppDataMetafields(

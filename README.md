@@ -1,6 +1,6 @@
-# Dynamic HTML Sitemap Shopify App
+# Standard HTML Sitemap
 
-Public Shopify app starter for a dynamic, crawlable HTML sitemap.
+Shopify app for a human-readable storefront HTML sitemap.
 
 ## What It Includes
 
@@ -11,6 +11,7 @@ Public Shopify app starter for a dynamic, crawlable HTML sitemap.
 - Chunked app-data metafields under `html_sitemap`.
 - Prisma persistence for shop config, sync status, and generated chunks.
 - Vitest coverage for config validation, chunking, truncation, and server-rendered link output.
+- Public privacy, terms, and support pages for merchants.
 
 ## Local Setup
 
@@ -46,3 +47,4 @@ Public Shopify app starter for a dynamic, crawlable HTML sitemap.
 - The HTML sitemap complements Shopify's XML sitemap; it does not replace it.
 - The theme block should be added only to a dedicated page template.
 - Navigation menu sync uses `read_online_store_navigation`, which may require Partner Dashboard approval.
+- See [App Store submission prep](docs/app-store-submission.md) before requesting review.

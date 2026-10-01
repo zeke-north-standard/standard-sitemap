@@ -15,6 +15,7 @@ export function LegalPage({
       <header className="legal-header">
         <a href="/">Standard HTML Sitemap</a>
         <nav aria-label="Legal">
+          <a href="/support">Support</a>
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>
         </nav>
