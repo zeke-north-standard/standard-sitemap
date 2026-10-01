@@ -24,7 +24,8 @@ copy, legal terms, and the live app before requesting Shopify review.
 2. **App name:** `North Standard Sitemap Creator` is the approved name and is
    exactly 30 characters, Shopify's limit. Verify that Shopify accepts it in
    the Dev Dashboard and use it in the listing and any media.
-3. **Icon:** `public/standard-sitemap-app-icon.png` is a 1200 x 1200 PNG.
+3. **Icon:** `public/standard-sitemap-app-icon.png` is a 1200 x 1200 PNG
+   under 1 MB.
    Upload this file in the Shopify Dev Dashboard. The repository image is not
    automatically used as the App Store listing icon.
 4. **Storefront review:** Run a clean install on a second development store.
