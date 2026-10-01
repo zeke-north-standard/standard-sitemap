@@ -83,6 +83,52 @@ Do not promise rankings, indexing, sales, or automatic refresh for every
 section. The current product/collection webhooks refresh those sections;
 changes to other sections require the merchant to select Refresh sitemap.
 
+## Clear the five listing-field issues
+
+These fields are entered in the Shopify Dev Dashboard, not deployed from this
+repository. Do not submit the app until the assets show the current product.
+
+1. **Feature media:** Upload one 1600 x 900 image with the actual sitemap or
+   admin UI as its focal point. Do not use the app icon alone. Add descriptive
+   alt text, such as "Storefront HTML sitemap with navigation and content
+   links."
+2. **Screenshots:** Upload 3-6 distinct 1600 x 900 desktop captures. Suggested
+   set: generated sitemap and preview; themed storefront sitemap with header
+   and footer; appearance and section controls; footer-menu setup. Crop out
+   browser chrome and personal data. Do not use the old screenshot of the
+   unthemed app proxy or any screen with an error banner.
+3. **Plan display names:** In the English listing's Pricing details, set the
+   existing free public plan's display name to `Free`. Suggested top features:
+   "HTML sitemap for published content", "Appearance and section controls",
+   and "Storefront URL and footer-menu link". State the 5,000-link limit in
+   the plan description if the form provides space. Do not add a paid plan.
+4. **Screencast URL:** Record a reviewer-facing walkthrough on a clean store:
+   install and open the app, generate and preview, open the themed storefront
+   sitemap, save an appearance change, and add a footer link. Show optional
+   permission prompts where relevant. Use an English narration or subtitles,
+   and enter a video URL that reviewers can open without signing in.
+5. **Testing instructions:** Paste and adapt the instructions below. Supply a
+   storefront password or other test credentials separately if the review
+   store requires them; do not put secrets in this repository.
+
+### Testing instructions to paste
+
+North Standard Sitemap Creator has no separate account, external login, or
+paid plan. Install it on a Shopify test store with the Online Store channel and
+some published products, collections, and pages. Open the app from Shopify
+Admin. Select Generate sitemap, then check the link counts and HTML preview.
+Select Open live sitemap to view `/apps/html-sitemap` in the storefront; it
+should use the store theme. Select Check publication to verify the URL. Change
+an appearance or section setting and select Save and refresh sitemap. In the
+footer-menu area, choose a menu and select Add Sitemap link; approve the
+optional navigation permission if prompted, then confirm the theme displays
+that menu. Policy access and the dedicated sitemap page are optional features.
+The dedicated page requests content-write permission only when selected and
+its app block belongs on a dedicated page template. Marketing email opt-in is
+optional and is not needed to use the sitemap. If the test store has a
+storefront password, provide it in the secure testing-credentials field so
+reviewers can inspect the live sitemap.
+
 ## Reviewer walkthrough
 
 1. Install from Shopify's App Store review flow. The app opens embedded in
