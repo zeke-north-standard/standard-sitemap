@@ -14,8 +14,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   const snapshot = await loadSnapshotForShop(shop);
-  return proxyContext.liquid(renderSitemapLiquid(snapshot), {
+  return new Response(renderSitemapLiquid(snapshot), {
     headers: {
+      "Content-Type": "application/liquid; charset=utf-8",
       "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
     },
   });

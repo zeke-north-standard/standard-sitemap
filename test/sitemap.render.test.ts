@@ -14,18 +14,25 @@ describe("renderSitemapMarkup", () => {
         version: 1,
         generatedAt: "2026-05-29T12:00:00.000Z",
         locale: "en",
-        totalLinks: 0,
+        totalLinks: 1,
         maxLinks: 5000,
-        chunks: {},
+        chunks: { products: 1 },
         truncated: false,
         truncatedSections: [],
         warnings: [],
       },
-      sections: [],
+      sections: [
+        {
+          key: "products",
+          title: "Products",
+          links: [{ title: "Compass", url: "/products/compass" }],
+        },
+      ],
     });
 
     expect(liquid).not.toContain("{% layout none %}");
     expect(liquid).toContain('<h1 class="html-sitemap__title">Sitemap</h1>');
+    expect(liquid).toContain('href="/products/compass"');
   });
 
   it("renders crawlable links in the initial HTML", () => {
