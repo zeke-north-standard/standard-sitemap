@@ -2,10 +2,32 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SITEMAP_CONFIG } from "~/models/sitemap.config";
 import {
   renderSitemapDocument,
+  renderSitemapLiquid,
   renderSitemapMarkup,
 } from "~/models/sitemap.render";
 
 describe("renderSitemapMarkup", () => {
+  it("lets Shopify wrap the proxy response in the store theme", () => {
+    const liquid = renderSitemapLiquid({
+      config: DEFAULT_SITEMAP_CONFIG,
+      manifest: {
+        version: 1,
+        generatedAt: "2026-05-29T12:00:00.000Z",
+        locale: "en",
+        totalLinks: 0,
+        maxLinks: 5000,
+        chunks: {},
+        truncated: false,
+        truncatedSections: [],
+        warnings: [],
+      },
+      sections: [],
+    });
+
+    expect(liquid).not.toContain("{% layout none %}");
+    expect(liquid).toContain('<h1 class="html-sitemap__title">Sitemap</h1>');
+  });
+
   it("renders crawlable links in the initial HTML", () => {
     const html = renderSitemapMarkup({
       config: DEFAULT_SITEMAP_CONFIG,

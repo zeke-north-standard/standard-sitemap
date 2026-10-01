@@ -7,6 +7,8 @@ import type {
 export const SITEMAP_STYLES = `
 .html-sitemap {
   color: var(--html-sitemap-text, #202223);
+  max-width: 1200px;
+  margin-inline: auto;
   padding: var(--html-sitemap-padding, 32px);
   border-radius: 8px;
   font-family: var(--font-body-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
@@ -133,7 +135,7 @@ export function renderSitemapMarkup(snapshot: SitemapSnapshot) {
 }
 
 export function renderSitemapLiquid(snapshot: SitemapSnapshot) {
-  return `{% layout none %}<style>${SITEMAP_STYLES}</style>${renderSitemapMarkup(snapshot)}`;
+  return `<style>${SITEMAP_STYLES}</style>${renderSitemapMarkup(snapshot)}`;
 }
 
 export function renderSitemapDocument(

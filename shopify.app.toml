@@ -8,7 +8,7 @@ name = "Standard HTML Sitemap"
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_app_proxy,read_online_store_navigation,read_products,read_content,write_content"
-optional_scopes = ["read_legal_policies"]
+optional_scopes = ["read_legal_policies", "write_online_store_navigation"]
 use_legacy_install_flow = false
 
 [auth]

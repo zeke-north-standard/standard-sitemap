@@ -7,7 +7,7 @@ import {
   useSubmit,
 } from "react-router";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import {
   getMarketingSubscription,
@@ -17,6 +17,10 @@ import {
   unsubscribeFromMarketing,
 } from "~/models/marketing-consent.server";
 import { configFromFormData } from "~/models/sitemap.config";
+import {
+  addSitemapLinkToMenu,
+  listSitemapMenus,
+} from "~/models/sitemap.navigation.server";
 import { findOrCreateSitemapPage } from "~/models/sitemap.page.server";
 import { verifySitemapPublication } from "~/models/sitemap.publication.server";
 import { renderSitemapDocument } from "~/models/sitemap.render";
@@ -34,18 +38,22 @@ import {
 import { authenticate } from "~/shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const [state, snapshot, marketingSubscription] = await Promise.all([
-    getSitemapState(session.shop),
-    loadSnapshotForShop(session.shop),
-    getMarketingSubscription(session.shop),
-  ]);
+  const { admin, session } = await authenticate.admin(request);
+  const [state, snapshot, marketingSubscription, footerMenus] =
+    await Promise.all([
+      getSitemapState(session.shop),
+      loadSnapshotForShop(session.shop),
+      getMarketingSubscription(session.shop),
+      listSitemapMenus(admin),
+    ]);
   const proxyUrl = `https://${session.shop}/apps/html-sitemap`;
   const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor?template=page&addAppBlockId=${process.env.SHOPIFY_API_KEY}/html-sitemap`;
 
   return data({
     proxyUrl,
     themeEditorUrl,
+    menuEditorUrl: `https://${session.shop}/admin/menus`,
+    footerMenus,
     previewHtml: renderSitemapDocument(snapshot, session.shop),
     sectionCounts: Object.fromEntries(
       snapshot.sections.map((section) => [section.key, section.links.length]),
@@ -120,6 +128,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const page = await findOrCreateSitemapPage(admin, session.shop);
       return data({
         message: `The optional /pages/${page.handle} page is ready.`,
+      });
+    }
+
+    if (intent === "add-footer-link") {
+      const menuId = String(formData.get("menuId") || "");
+      const result = await addSitemapLinkToMenu(admin, session.shop, menuId);
+      return data({
+        message: result.added
+          ? `Sitemap was added to ${result.menuTitle}. Check that your theme displays this menu in its footer.`
+          : `${result.menuTitle} already links to the sitemap.`,
       });
     }
 
@@ -208,6 +226,8 @@ export default function Index() {
     state,
     proxyUrl,
     themeEditorUrl,
+    menuEditorUrl,
+    footerMenus,
     previewHtml,
     sectionCounts,
     marketing,
@@ -220,6 +240,14 @@ export default function Index() {
     useState(false);
   const [policyAccessMessage, setPolicyAccessMessage] = useState<string | null>(
     null,
+  );
+  const [isRequestingNavigationAccess, setIsRequestingNavigationAccess] =
+    useState(false);
+  const [navigationAccessMessage, setNavigationAccessMessage] = useState<
+    string | null
+  >(null);
+  const [selectedMenuId, setSelectedMenuId] = useState(
+    footerMenus[0]?.id ?? "",
   );
   const config = state.config;
   const activeIntent = navigation.formData?.get("intent");
@@ -256,6 +284,32 @@ export default function Index() {
       );
     } finally {
       setIsRequestingPolicyAccess(false);
+    }
+  };
+
+  const addFooterLink = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    setIsRequestingNavigationAccess(true);
+    setNavigationAccessMessage(null);
+
+    try {
+      const response = await shopify.scopes.request([
+        "write_online_store_navigation",
+      ]);
+      if (response.result === "granted-all") {
+        submit(form, { method: "post" });
+      } else {
+        setNavigationAccessMessage(
+          "Navigation access was not granted. You can add the link manually in Shopify Menus.",
+        );
+      }
+    } catch {
+      setNavigationAccessMessage(
+        "Shopify could not open the navigation permission prompt. You can add the link manually in Shopify Menus.",
+      );
+    } finally {
+      setIsRequestingNavigationAccess(false);
     }
   };
 
@@ -570,11 +624,80 @@ export default function Index() {
 
               <s-box>
                 <s-stack gap="base">
-                  <s-heading>Optional theme page</s-heading>
+                  <s-heading>Add a footer link</s-heading>
                   <s-text>
-                    Use this only when you want the sitemap inside a themed
-                    Shopify page. The app proxy above is already the complete
-                    SEO-ready version.
+                    Choose the menu your theme displays in its footer. The
+                    sitemap link will appear beside its existing links.
+                  </s-text>
+                  {footerMenus.length > 0 ? (
+                    <Form method="post" onSubmit={addFooterLink}>
+                      <s-stack gap="base">
+                        <input
+                          type="hidden"
+                          name="intent"
+                          value="add-footer-link"
+                        />
+                        <s-select
+                          label="Footer menu"
+                          name="menuId"
+                          value={selectedMenuId}
+                          onChange={(event) =>
+                            setSelectedMenuId(event.currentTarget.value)
+                          }
+                        >
+                          {footerMenus.map((menu) => (
+                            <s-option key={menu.id} value={menu.id}>
+                              {menu.title} ({menu.handle})
+                              {menu.hasSitemapLink ? " - linked" : ""}
+                            </s-option>
+                          ))}
+                        </s-select>
+                        <s-button
+                          type="submit"
+                          loading={
+                            isRequestingNavigationAccess ||
+                            isSubmittingIntent("add-footer-link")
+                              ? true
+                              : undefined
+                          }
+                          disabled={!hasSnapshot ? true : undefined}
+                        >
+                          Add Sitemap link
+                        </s-button>
+                      </s-stack>
+                    </Form>
+                  ) : (
+                    <s-text>
+                      No Shopify menus were found. Create a footer menu before
+                      adding the link.
+                    </s-text>
+                  )}
+                  {navigationAccessMessage ? (
+                    <s-banner tone="warning">
+                      {navigationAccessMessage}
+                    </s-banner>
+                  ) : null}
+                  <s-text>
+                    To add it yourself, open Content &gt; Menus in Shopify,
+                    choose your footer menu, and add a link named Sitemap with
+                    this URL:
+                  </s-text>
+                  <div className="sitemap-url">{proxyUrl}</div>
+                  <s-button href={menuEditorUrl} target="_blank">
+                    Open Shopify menus
+                  </s-button>
+                </s-stack>
+              </s-box>
+
+              <s-divider />
+
+              <s-box>
+                <s-stack gap="base">
+                  <s-heading>Optional dedicated page</s-heading>
+                  <s-text>
+                    The live sitemap above now uses your store theme. Create a
+                    separate page only when you want a /pages/sitemap URL and
+                    place the app block on its own page template.
                   </s-text>
                   {state.sitemapPageHandle ? (
                     <s-banner tone="success">
