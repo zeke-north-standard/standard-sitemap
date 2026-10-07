@@ -125,8 +125,9 @@ export async function markSitemapSyncFailed(shop: string, error: unknown) {
 
 export async function loadSnapshotForShop(
   shop: string,
+  state?: Awaited<ReturnType<typeof getSitemapState>>,
 ): Promise<SitemapSnapshot> {
-  const record = await getSitemapState(shop);
+  const record = state ?? (await getSitemapState(shop));
   const chunks = await prisma.sitemapChunk.findMany({
     where: { shop },
     orderBy: [{ section: "asc" }, { chunkIndex: "asc" }],

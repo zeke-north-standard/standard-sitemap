@@ -39,13 +39,12 @@ import { authenticate } from "~/shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const [state, snapshot, marketingSubscription, footerMenus] =
-    await Promise.all([
-      getSitemapState(session.shop),
-      loadSnapshotForShop(session.shop),
-      getMarketingSubscription(session.shop),
-      listSitemapMenus(admin),
-    ]);
+  const state = await getSitemapState(session.shop);
+  const [snapshot, marketingSubscription, footerMenus] = await Promise.all([
+    loadSnapshotForShop(session.shop, state),
+    getMarketingSubscription(session.shop),
+    listSitemapMenus(admin),
+  ]);
   const proxyUrl = `https://${session.shop}/apps/html-sitemap`;
   const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor?template=page&addAppBlockId=${process.env.SHOPIFY_API_KEY}/html-sitemap`;
 
