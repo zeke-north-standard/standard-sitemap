@@ -4,7 +4,8 @@ const SITEMAP_PATH = "/apps/html-sitemap";
 
 interface MenuLink {
   url: string | null;
-  items: MenuLink[];
+  // Terminal items omit children when the query reaches Shopify's third level.
+  items?: MenuLink[];
 }
 
 interface MenuItem extends MenuLink {
@@ -13,7 +14,7 @@ interface MenuItem extends MenuLink {
   type: string;
   resourceId: string | null;
   tags: string[];
-  items: MenuItem[];
+  items?: MenuItem[];
 }
 
 interface MenuSummary {
@@ -103,7 +104,7 @@ function toUpdateInput(item: MenuItem): Record<string, unknown> {
     ...(item.url ? { url: item.url } : {}),
     ...(item.resourceId ? { resourceId: item.resourceId } : {}),
     ...(item.tags.length ? { tags: item.tags } : {}),
-    items: item.items.map(toUpdateInput),
+    items: (item.items ?? []).map(toUpdateInput),
   };
 }
 
@@ -123,7 +124,7 @@ function containsSitemapLink(items: MenuLink[]): boolean {
         // Invalid existing links should not prevent the merchant from adding a sitemap.
       }
     }
-    return containsSitemapLink(item.items);
+    return containsSitemapLink(item.items ?? []);
   });
 }
 

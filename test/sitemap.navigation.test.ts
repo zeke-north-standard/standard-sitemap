@@ -46,6 +46,29 @@ function existingMenu() {
   };
 }
 
+function threeLevelMenu() {
+  const menu = existingMenu();
+  const parent = menu.items[0];
+  const child = parent.items[0];
+  return {
+    ...menu,
+    items: [{
+      ...parent,
+      items: [{
+        ...child,
+        items: [{
+          id: "gid://shopify/MenuItem/12",
+          title: "Exchanges",
+          type: "HTTP",
+          url: "/policies/exchange-policy",
+          resourceId: null,
+          tags: [],
+        }],
+      }],
+    }],
+  };
+}
+
 describe("sitemap footer navigation", () => {
   it("places the footer menu first and reports an existing link", async () => {
     const client = createClient([
@@ -76,6 +99,24 @@ describe("sitemap footer navigation", () => {
 
     const menus = await listSitemapMenus(client);
     expect(menus[0]).toMatchObject({ id: MENU_ID, hasSitemapLink: true });
+  });
+
+  it("loads three-level menus when terminal query results omit children", async () => {
+    const client = createClient([{ menus: { nodes: [threeLevelMenu()] } }]);
+
+    expect(await listSitemapMenus(client)).toEqual([
+      { id: MENU_ID, title: "Footer menu", handle: "footer", hasSitemapLink: false },
+    ]);
+  });
+
+  it("detects a sitemap link at the third menu level", async () => {
+    const menu = threeLevelMenu();
+    menu.items[0].items[0].items[0].url = "/apps/html-sitemap";
+    const client = createClient([{ menus: { nodes: [menu] } }]);
+
+    expect(await listSitemapMenus(client)).toMatchObject([
+      { id: MENU_ID, hasSitemapLink: true },
+    ]);
   });
 
   it("appends a sitemap link without changing existing nested links", async () => {
@@ -115,5 +156,37 @@ describe("sitemap footer navigation", () => {
       menuTitle: "Footer menu",
     });
     expect(client.graphql).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves all three menu levels when adding the sitemap link", async () => {
+    const client = createClient([
+      { menu: threeLevelMenu() },
+      { menuUpdate: { menu: { id: MENU_ID }, userErrors: [] } },
+    ]);
+
+    expect(await addSitemapLinkToMenu(client, SHOP, MENU_ID)).toEqual({
+      added: true,
+      menuTitle: "Footer menu",
+    });
+    const variables = client.graphql.mock.calls[1][1]?.variables as {
+      items: Array<Record<string, unknown>>;
+    };
+    expect(variables.items[0]).toMatchObject({
+      id: "gid://shopify/MenuItem/10",
+      items: [{
+        id: "gid://shopify/MenuItem/11",
+        items: [{
+          id: "gid://shopify/MenuItem/12",
+          title: "Exchanges",
+          url: "/policies/exchange-policy",
+          items: [],
+        }],
+      }],
+    });
+    expect(variables.items[1]).toEqual({
+      title: "Sitemap",
+      type: "HTTP",
+      url: `https://${SHOP}/apps/html-sitemap`,
+    });
   });
 });
