@@ -18,13 +18,13 @@ export async function verifySitemapPublication(
         "User-Agent": "North Standard Sitemap Creator publication check",
       },
       redirect: "follow",
+      signal: AbortSignal.timeout(10_000),
     });
     const body = await response.text();
-    const normalizedBody = body.toLowerCase();
+    const responsePath = response.url ? new URL(response.url).pathname : "";
     const isPasswordPage =
-      response.url.includes("/password") ||
-      normalizedBody.includes('name="password"') ||
-      normalizedBody.includes("storefront-password");
+      responsePath.replace(/\/$/, "") === "/password" ||
+      /<form\b[^>]*\baction\s*=\s*["'](?:https?:\/\/[^/"']+)?\/password(?:[?#][^"']*)?["']/i.test(body);
 
     if (isPasswordPage) {
       return {
@@ -49,6 +49,16 @@ export async function verifySitemapPublication(
     if (response.ok && body.includes('class="html-sitemap')) {
       const linkCount = (body.match(/class="html-sitemap__link"/g) ?? [])
         .length;
+
+      if (linkCount === 0) {
+        return {
+          status: "NOT_GENERATED",
+          tone: "warning",
+          message:
+            "The sitemap URL is available, but it has no crawlable links yet. Generate the sitemap, then check again.",
+          linkCount: 0,
+        };
+      }
 
       return {
         status: "LIVE",

@@ -8,10 +8,12 @@ import {
   type SitemapSectionKey,
   type SitemapSnapshot,
 } from "./sitemap.types";
+import { isCrawlableSitemapUrl } from "./sitemap.links";
 
 export const MAX_TOTAL_LINKS = 5000;
 export const MAX_LINKS_PER_CHUNK = 300;
-export const MAX_CHUNK_BYTES = 60000;
+// New apps have a 128KB JSON metafield limit; leave room below it.
+export const MAX_CHUNK_BYTES = 120000;
 
 const SECTION_TITLES: Record<SitemapSectionKey, string> = {
   navigation: "Navigation",
@@ -105,7 +107,7 @@ export function buildChunkedSitemap(input: BuildSnapshotInput): ChunkedSitemap {
 function dedupeLinks(links: SitemapLink[]) {
   const seen = new Set<string>();
   return links
-    .filter((link) => link.title.trim() && link.url.trim())
+    .filter((link) => link.title.trim() && isCrawlableSitemapUrl(link.url))
     .map((link) => ({
       ...link,
       title: link.title.trim(),

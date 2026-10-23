@@ -49,9 +49,10 @@ export function parseSitemapConfig(value: unknown): SitemapConfig {
     )
       ? (input.spacingDensity as SitemapConfig["spacingDensity"])
       : DEFAULT_SITEMAP_CONFIG.spacingDensity,
-    showCounts: input.showCounts ?? DEFAULT_SITEMAP_CONFIG.showCounts,
-    showLastUpdated:
-      input.showLastUpdated ?? DEFAULT_SITEMAP_CONFIG.showLastUpdated,
+    showCounts: typeof input.showCounts === "boolean"
+      ? input.showCounts : DEFAULT_SITEMAP_CONFIG.showCounts,
+    showLastUpdated: typeof input.showLastUpdated === "boolean"
+      ? input.showLastUpdated : DEFAULT_SITEMAP_CONFIG.showLastUpdated,
     enabledSections,
     sectionOrder,
   };
@@ -64,7 +65,7 @@ export function configFromFormData(formData: FormData): SitemapConfig {
 
   return parseSitemapConfig({
     layout: formData.get("layout"),
-    columns: Number(formData.get("columns")),
+    columns: formData.get("columns"),
     accentColor: formData.get("accentColor"),
     textColor: formData.get("textColor"),
     backgroundMode: formData.get("backgroundMode"),
@@ -86,7 +87,7 @@ function normalizeSections(value: unknown): SitemapSectionKey[] {
     SITEMAP_SECTIONS.includes(section as SitemapSectionKey),
   );
 
-  return known.length > 0 ? known : DEFAULT_SITEMAP_CONFIG.enabledSections;
+  return [...new Set(known)];
 }
 
 function normalizeSectionOrder(
@@ -98,7 +99,7 @@ function normalizeSectionOrder(
     enabledSections.includes(section as SitemapSectionKey),
   );
   const missing = enabledSections.filter((section) => !ordered.includes(section));
-  return [...ordered, ...missing];
+  return [...new Set([...ordered, ...missing])];
 }
 
 function clampInteger(
@@ -107,6 +108,7 @@ function clampInteger(
   max: number,
   fallback: number,
 ) {
+  if (value == null || (typeof value === "string" && !value.trim())) return fallback;
   const number = Number(value);
   if (!Number.isInteger(number)) return fallback;
   return Math.max(min, Math.min(max, number));

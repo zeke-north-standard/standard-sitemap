@@ -9,8 +9,15 @@ import { saveSitemapSnapshot } from "./sitemap.store.server";
 import type {
   SitemapConfig,
   SitemapLink,
+  SitemapManifest,
   SitemapSectionKey,
 } from "./sitemap.types";
+
+const MAX_PUBLICATION_METAFIELDS = 25;
+const MAX_JSON_METAFIELD_BYTES = 128000;
+const MAX_PUBLICATION_REQUEST_BYTES = 10000000;
+const PUBLICATION_LIMIT_MESSAGE =
+  "This sitemap is too large to publish in one safe update. Choose fewer sections and generate it again. Your existing sitemap has not been changed.";
 
 interface SyncInput {
   admin: GraphqlClient;
@@ -55,8 +62,9 @@ export async function syncSitemapForShop({
     ? [policyResult.warning]
     : [];
 
-  await saveSitemapSnapshot(shop, chunked.snapshot, chunked.chunks);
   await writeAppDataMetafields(admin, chunked.snapshot, chunked.chunks);
+  // A failed Shopify publication must not replace the last successful snapshot.
+  await saveSitemapSnapshot(shop, chunked.snapshot, chunked.chunks);
 
   return chunked.snapshot;
 }
@@ -187,6 +195,7 @@ async function fetchConnection<T extends { title: string }>(
 ) {
   const nodes: T[] = [];
   let after: string | null = null;
+  const seenCursors = new Set<string>();
 
   do {
     const data: Record<string, Connection<T>> = await graphqlRequest<
@@ -197,6 +206,10 @@ async function fetchConnection<T extends { title: string }>(
     after = connection.pageInfo.hasNextPage
       ? connection.pageInfo.endCursor
       : null;
+    if (connection.pageInfo.hasNextPage && (!after || seenCursors.has(after))) {
+      throw new Error("Shopify pagination did not advance. Please try generating the sitemap again.");
+    }
+    if (after) seenCursors.add(after);
   } while (after && nodes.length <= MAX_TOTAL_LINKS);
 
   return nodes.slice(0, MAX_TOTAL_LINKS + 1);
@@ -206,7 +219,7 @@ async function writeAppDataMetafields(
   admin: GraphqlClient,
   snapshot: {
     config: SitemapConfig;
-    manifest: unknown;
+    manifest: SitemapManifest;
   },
   chunks: Array<{
     section: SitemapSectionKey;
@@ -214,50 +227,62 @@ async function writeAppDataMetafields(
     links: SitemapLink[];
   }>,
 ) {
-  const appInstallation = await graphqlRequest<AppInstallationData>(
-    admin,
-    CURRENT_APP_INSTALLATION_QUERY,
-  );
-
-  const metafields = [
+  const publicationFields = [
+    ...chunks.map((chunk) => ({
+      namespace: "html_sitemap",
+      key: `${chunk.section}_${chunk.chunkIndex}`,
+      type: "json",
+      value: JSON.stringify(chunk.links),
+    })),
     {
       namespace: "html_sitemap",
       key: "config",
       type: "json",
       value: JSON.stringify(snapshot.config),
-      ownerId: appInstallation.currentAppInstallation.id,
     },
     {
       namespace: "html_sitemap",
       key: "manifest",
       type: "json",
       value: JSON.stringify(snapshot.manifest),
-      ownerId: appInstallation.currentAppInstallation.id,
     },
-    ...chunks.map((chunk) => ({
-      namespace: "html_sitemap",
-      key: `${chunk.section}_${chunk.chunkIndex}`,
-      type: "json",
-      value: JSON.stringify(chunk.links),
-      ownerId: appInstallation.currentAppInstallation.id,
-    })),
   ];
 
-  for (let index = 0; index < metafields.length; index += 25) {
-    const result = await graphqlRequest<{
-      metafieldsSet: {
-        userErrors: Array<{ message: string }>;
-      };
-    }>(admin, METAFIELDS_SET_MUTATION, {
-      metafields: metafields.slice(index, index + 25),
-    });
-    if (result.metafieldsSet.userErrors.length > 0) {
-      throw new Error(
-        result.metafieldsSet.userErrors
-          .map((error) => error.message)
-          .join("; "),
-      );
-    }
+  // One metafieldsSet is atomic. Multiple writes to reused chunk keys are not.
+  if (
+    publicationFields.length > MAX_PUBLICATION_METAFIELDS ||
+    publicationFields.some((field) =>
+      Buffer.byteLength(field.value, "utf8") > MAX_JSON_METAFIELD_BYTES)
+  ) {
+    throw new Error(PUBLICATION_LIMIT_MESSAGE);
+  }
+
+  const appInstallation = await graphqlRequest<AppInstallationData>(
+    admin,
+    CURRENT_APP_INSTALLATION_QUERY,
+  );
+  const metafields = publicationFields.map((field) => ({
+    ...field,
+    ownerId: appInstallation.currentAppInstallation.id,
+  }));
+  if (Buffer.byteLength(JSON.stringify({
+    query: METAFIELDS_SET_MUTATION,
+    variables: { metafields },
+  }), "utf8") > MAX_PUBLICATION_REQUEST_BYTES) {
+    throw new Error(PUBLICATION_LIMIT_MESSAGE);
+  }
+
+  const result = await graphqlRequest<{
+    metafieldsSet: {
+      userErrors: Array<{ message: string }>;
+    };
+  }>(admin, METAFIELDS_SET_MUTATION, { metafields });
+  if (result.metafieldsSet.userErrors.length > 0) {
+    throw new Error(
+      result.metafieldsSet.userErrors
+        .map((error) => error.message)
+        .join("; "),
+    );
   }
 }
 

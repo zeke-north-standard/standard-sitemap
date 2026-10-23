@@ -1,0 +1,14 @@
+{% if links.size > 0 %}
+  {% assign last_link_batch = links.size | minus: 1 | divided_by: 50 %}
+  {% for link_batch in (0..last_link_batch) %}
+    {% assign link_offset = link_batch | times: 50 %}
+    {% for link in links limit: 50 offset: link_offset %}
+      <li class="html-sitemap__item">
+        <a class="html-sitemap__link" href="{{ link.url | escape }}">{{ link.title | escape }}</a>
+        {% if show_last_updated and link.updatedAt != blank %}
+          <span class="html-sitemap__link-date">{{ link.updatedAt | date: format: 'abbreviated_date' }}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  {% endfor %}
+{% endif %}

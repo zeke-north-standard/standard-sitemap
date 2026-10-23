@@ -5,12 +5,14 @@ import { loadSnapshotForShop } from "~/models/sitemap.store.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const proxyContext = await authenticate.public.appProxy(request);
-  const context = proxyContext as { session?: { shop?: string } };
-  const shop =
-    context.session?.shop ?? new URL(request.url).searchParams.get("shop");
+  const shop = proxyContext.session?.shop;
 
   if (!shop) {
-    return new Response("Missing shop.", { status: 400 });
+    // A valid proxy signature does not mean the app is still installed.
+    return new Response("Sitemap is unavailable.", {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   const snapshot = await loadSnapshotForShop(shop);

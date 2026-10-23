@@ -3,6 +3,7 @@ import type {
   SitemapLink,
   SitemapSnapshot,
 } from "./sitemap.types";
+import { isCrawlableSitemapUrl } from "./sitemap.links";
 
 export const SITEMAP_STYLES = `
 .html-sitemap {
@@ -98,6 +99,10 @@ export const SITEMAP_STYLES = `
 export function renderSitemapMarkup(snapshot: SitemapSnapshot) {
   const { config, manifest, sections } = snapshot;
   const sectionMarkup = sections
+    .map((section) => ({
+      ...section,
+      links: section.links.filter((link) => isCrawlableSitemapUrl(link.url)),
+    }))
     .filter((section) => section.links.length > 0)
     .map((section) => {
       const count = config.showCounts
@@ -119,9 +124,10 @@ export function renderSitemapMarkup(snapshot: SitemapSnapshot) {
       ? `<p class="html-sitemap__empty">No sitemap links are available yet.</p>`
       : "";
 
-  const updated = config.showLastUpdated
+  const generatedAt = config.showLastUpdated ? formatDate(manifest.generatedAt) : "";
+  const updated = generatedAt
     ? `<p class="html-sitemap__updated">Last updated ${escapeHtml(
-        formatDate(manifest.generatedAt),
+        generatedAt,
       )}</p>`
     : "";
 
@@ -162,10 +168,11 @@ export function renderSitemapDocument(
 }
 
 function renderSitemapLink(link: SitemapLink, showLastUpdated: boolean) {
+  const updatedAt = showLastUpdated && link.updatedAt ? formatDate(link.updatedAt) : "";
   const updated =
-    showLastUpdated && link.updatedAt
+    updatedAt
       ? `<span class="html-sitemap__link-date">${escapeHtml(
-          formatDate(link.updatedAt),
+          updatedAt,
         )}</span>`
       : "";
 
@@ -193,11 +200,13 @@ function styleVars(config: SitemapConfig) {
 }
 
 function formatDate(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
   return new Intl.DateTimeFormat("en", {
     year: "numeric",
     month: "short",
     day: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function escapeHtml(value: string) {
@@ -205,6 +214,9 @@ function escapeHtml(value: string) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
+    // Proxy responses are evaluated as Liquid after this HTML is rendered.
+    .replace(/{/g, "&#123;")
+    .replace(/}/g, "&#125;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }

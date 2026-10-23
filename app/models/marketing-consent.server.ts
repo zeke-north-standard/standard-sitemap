@@ -68,6 +68,10 @@ export async function syncMarketingSubscription(shop: string) {
   let subscription = await prisma.marketingSubscription.findUnique({
     where: { shop },
   });
+  if (subscription?.status === "UNSUBSCRIBED") {
+    await syncMarketingUnsubscribe(shop);
+    return { welcomeSent: false, welcomeSkipped: false };
+  }
   if (!subscription || subscription.status !== "SUBSCRIBED") {
     throw new Error("No active email subscription was found.");
   }
@@ -186,11 +190,9 @@ export async function deleteMarketingSubscription(shop: string) {
     where: { shop },
   });
   if (subscription) {
-    try {
-      await deleteResendContact(subscription.email);
-    } catch (error) {
-      console.error(`Could not remove Resend contact for ${shop}.`, error);
-    }
+    // Keep the email until provider erasure succeeds so a webhook retry can
+    // finish cleanup after a transient provider failure.
+    await deleteResendContact(subscription.email);
   }
   return prisma.marketingSubscription.deleteMany({ where: { shop } });
 }

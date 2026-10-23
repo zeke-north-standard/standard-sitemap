@@ -11,6 +11,13 @@ export async function graphqlRequest<T>(
   variables?: Record<string, unknown>,
 ): Promise<T> {
   const response = await client.graphql(query, { variables });
+  if (!response.ok) {
+    throw new Error(
+      response.status === 429
+        ? "Shopify is limiting requests. Please wait a moment and try again."
+        : `Shopify returned HTTP ${response.status}. Please try again.`,
+    );
+  }
   const json = (await response.json()) as {
     data?: T;
     errors?: Array<{ message: string }>;

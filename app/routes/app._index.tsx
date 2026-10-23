@@ -4,11 +4,15 @@ import {
   useActionData,
   useLoaderData,
   useNavigation,
+  useRevalidator,
+  useRouteError,
+  isRouteErrorResponse,
   useSubmit,
 } from "react-router";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useState, type FormEvent } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   getMarketingSubscription,
   subscribeToMarketing,
@@ -28,7 +32,6 @@ import {
   getSitemapState,
   loadSnapshotForShop,
   markSitemapSyncFailed,
-  saveSitemapConfig,
 } from "~/models/sitemap.store.server";
 import { syncSitemapForShop } from "~/models/sitemap.sync.server";
 import {
@@ -40,10 +43,23 @@ import { authenticate } from "~/shopify.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const state = await getSitemapState(session.shop);
+  let menusUnavailable = false;
+  let marketingUnavailable = false;
   const [snapshot, marketingSubscription, footerMenus] = await Promise.all([
     loadSnapshotForShop(session.shop, state),
-    getMarketingSubscription(session.shop),
-    listSitemapMenus(admin),
+    getMarketingSubscription(session.shop).catch((error) => {
+      if (error instanceof Response || isRouteErrorResponse(error)) throw error;
+      marketingUnavailable = true;
+      console.error("Sitemap dashboard optional email settings unavailable");
+      return null;
+    }),
+    listSitemapMenus(admin).catch((error) => {
+      // Shopify uses thrown responses to recover an invalid access token.
+      if (error instanceof Response || isRouteErrorResponse(error)) throw error;
+      menusUnavailable = true;
+      console.error("Sitemap dashboard optional navigation unavailable");
+      return [];
+    }),
   ]);
   const proxyUrl = `https://${session.shop}/apps/html-sitemap`;
   const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor?template=page&addAppBlockId=${process.env.SHOPIFY_API_KEY}/html-sitemap`;
@@ -53,6 +69,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     themeEditorUrl,
     menuEditorUrl: `https://${session.shop}/admin/menus`,
     footerMenus,
+    menusUnavailable,
+    marketingUnavailable,
     previewHtml: renderSitemapDocument(snapshot, session.shop),
     sectionCounts: Object.fromEntries(
       snapshot.sections.map((section) => [section.key, section.links.length]),
@@ -88,7 +106,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     if (intent === "save-config") {
       const config = configFromFormData(formData);
-      await saveSitemapConfig(session.shop, config);
       const snapshot = await syncSitemapForShop({
         admin,
         shop: session.shop,
@@ -208,8 +225,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     return data({ error: "Unknown action." }, { status: 400 });
   } catch (error) {
+    if (error instanceof Response || isRouteErrorResponse(error)) throw error;
     if (intent === "sync" || intent === "save-config") {
-      await markSitemapSyncFailed(session.shop, error);
+      try {
+        await markSitemapSyncFailed(session.shop, error);
+      } catch {
+        console.error("Sitemap sync failure status could not be saved");
+      }
     }
     return data(
       {
@@ -227,6 +249,8 @@ export default function Index() {
     themeEditorUrl,
     menuEditorUrl,
     footerMenus,
+    menusUnavailable,
+    marketingUnavailable,
     previewHtml,
     sectionCounts,
     marketing,
@@ -250,9 +274,6 @@ export default function Index() {
   const [contentAccessMessage, setContentAccessMessage] = useState<
     string | null
   >(null);
-  const [selectedMenuId, setSelectedMenuId] = useState(
-    footerMenus[0]?.id ?? "",
-  );
   const config = state.config;
   const activeIntent = navigation.formData?.get("intent");
   const isSubmittingIntent = (intent: string) =>
@@ -265,7 +286,7 @@ export default function Index() {
     actionData && "warning" in actionData ? actionData.warning : null;
   const verification =
     actionData && "verification" in actionData ? actionData.verification : null;
-  const hasSnapshot = state.totalLinks > 0;
+  const hasSnapshot = state.manifest !== null;
 
   const requestPolicyAccess = async () => {
     setIsRequestingPolicyAccess(true);
@@ -492,7 +513,9 @@ export default function Index() {
                   <s-box>
                     <s-stack gap="base">
                       <s-heading>SEO updates</s-heading>
-                      {marketing?.isSubscribed ? (
+                      {marketingUnavailable ? (
+                        <s-banner tone="warning">Email settings are temporarily unavailable. Refresh the app to retry.</s-banner>
+                      ) : marketing?.isSubscribed ? (
                         <>
                           <s-banner tone="success">
                             Updates are going to {marketing.email}.
@@ -549,6 +572,16 @@ export default function Index() {
                           </Form>
                         </>
                       ) : (
+                        <>
+                        {marketing?.resendSyncStatus === "FAILED" && <s-banner tone="warning">
+                          <s-stack gap="small">
+                            <s-text>You are unsubscribed in the app. Retry syncing your unsubscribe preference with the email provider.</s-text>
+                            <Form method="post">
+                              <input type="hidden" name="intent" value="sync-marketing" />
+                              <s-button type="submit" loading={isSubmittingIntent("sync-marketing") ? true : undefined}>Retry unsubscribe sync</s-button>
+                            </Form>
+                          </s-stack>
+                        </s-banner>}
                         <Form method="post">
                           <s-stack gap="base">
                             <input
@@ -594,6 +627,7 @@ export default function Index() {
                             </s-text>
                           </s-stack>
                         </Form>
+                        </>
                       )}
                     </s-stack>
                   </s-box>
@@ -668,10 +702,7 @@ export default function Index() {
                         <s-select
                           label="Footer menu"
                           name="menuId"
-                          value={selectedMenuId}
-                          onChange={(event) =>
-                            setSelectedMenuId(event.currentTarget.value)
-                          }
+                          value={footerMenus[0]?.id ?? ""}
                         >
                           {footerMenus.map((menu) => (
                             <s-option key={menu.id} value={menu.id}>
@@ -695,10 +726,8 @@ export default function Index() {
                       </s-stack>
                     </Form>
                   ) : (
-                    <s-text>
-                      No Shopify menus were found. Create a footer menu before
-                      adding the link.
-                    </s-text>
+                    menusUnavailable ? <s-banner tone="warning">Shopify menus could not be loaded. Refresh the app to retry, or add the sitemap link in Shopify Menus.</s-banner> :
+                    <s-text>No Shopify menus were found. Create a footer menu before adding the link.</s-text>
                   )}
                   {navigationAccessMessage ? (
                     <s-banner tone="warning">
@@ -765,7 +794,7 @@ export default function Index() {
       </s-section>
 
       <s-section heading="Customize appearance">
-        <Form method="post">
+        <Form method="post" key={JSON.stringify(config)}>
           <s-stack gap="base">
             <input type="hidden" name="intent" value="save-config" />
             <s-text>
@@ -837,11 +866,13 @@ export default function Index() {
               <s-checkbox
                 label="Show counts"
                 name="showCounts"
+                value="on"
                 checked={config.showCounts ? true : undefined}
               />
               <s-checkbox
                 label="Show last updated dates"
                 name="showLastUpdated"
+                value="on"
                 checked={config.showLastUpdated ? true : undefined}
               />
             </s-stack>
@@ -856,6 +887,7 @@ export default function Index() {
                   key={section}
                   label={sectionLabel(section)}
                   name={`enabled:${section}`}
+                  value="on"
                   checked={
                     config.enabledSections.includes(section) ? true : undefined
                   }
@@ -871,6 +903,24 @@ export default function Index() {
             </s-button>
           </s-stack>
         </Form>
+      </s-section>
+    </s-page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const revalidator = useRevalidator();
+  if (error instanceof Response || isRouteErrorResponse(error)) {
+    return boundary.error(error);
+  }
+  return (
+    <s-page heading="North Standard Sitemap Creator">
+      <s-section>
+        <s-banner tone="critical" heading="The sitemap dashboard could not load">
+          Retry loading the dashboard. If the problem continues, contact North Standard support.
+        </s-banner>
+        <s-button onClick={() => revalidator.revalidate()} loading={revalidator.state !== "idle" ? true : undefined}>Retry dashboard</s-button>
       </s-section>
     </s-page>
   );

@@ -189,4 +189,21 @@ describe("sitemap footer navigation", () => {
       url: `https://${SHOP}/apps/html-sitemap`,
     });
   });
+
+  it("rejects an invalid menu identifier before making a Shopify request", async () => {
+    const client = createClient([]);
+    await expect(addSitemapLinkToMenu(client, SHOP, "gid://shopify/Page/123")).rejects.toThrow("Select a valid menu");
+    expect(client.graphql).not.toHaveBeenCalled();
+  });
+
+  it("handles a menu deleted since the dashboard loaded", async () => {
+    const client = createClient([{ menu: null }]);
+    await expect(addSitemapLinkToMenu(client, SHOP, MENU_ID)).rejects.toThrow("no longer available");
+    expect(client.graphql).toHaveBeenCalledOnce();
+  });
+
+  it("surfaces a denied optional navigation write instead of claiming success", async () => {
+    const client = createClient([{ menu: existingMenu() }, { menuUpdate: { menu: null, userErrors: [{ message: "Access denied" }] } }]);
+    await expect(addSitemapLinkToMenu(client, SHOP, MENU_ID)).rejects.toThrow("Access denied");
+  });
 });

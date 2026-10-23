@@ -28,12 +28,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return new Response("Invalid webhook signature.", { status: 400 });
   }
 
-  const event = JSON.parse(payload) as ResendContactEvent;
+  let event: ResendContactEvent;
+  try {
+    const parsed: unknown = JSON.parse(payload);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return new Response("Invalid webhook payload.", { status: 400 });
+    }
+    event = parsed as ResendContactEvent;
+  } catch {
+    return new Response("Invalid webhook payload.", { status: 400 });
+  }
   const shouldUnsubscribe =
     event.type === "contact.deleted" ||
     (event.type === "contact.updated" && event.data?.unsubscribed === true);
 
-  if (shouldUnsubscribe && event.data?.email) {
+  if (shouldUnsubscribe && typeof event.data?.email === "string" && event.data.email.trim()) {
     await markMarketingUnsubscribedByEmail(event.data.email);
   }
 

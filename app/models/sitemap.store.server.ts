@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import prisma from "~/db.server";
 import { DEFAULT_SITEMAP_CONFIG, parseSitemapConfig } from "./sitemap.config";
 import {
@@ -22,14 +23,27 @@ const EMPTY_MANIFEST: SitemapManifest = {
 };
 
 export async function ensureSitemapShop(shop: string) {
-  return prisma.sitemapShop.upsert({
-    where: { shop },
-    create: {
-      shop,
-      configJson: JSON.stringify(DEFAULT_SITEMAP_CONFIG),
-    },
-    update: {},
-  });
+  try {
+    return await prisma.sitemapShop.upsert({
+      where: { shop },
+      create: {
+        shop,
+        configJson: JSON.stringify(DEFAULT_SITEMAP_CONFIG),
+      },
+      update: {},
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      // An empty-update upsert can race on the first visit. Reuse the row
+      // inserted by the other request without overwriting its saved settings.
+      const existing = await prisma.sitemapShop.findUnique({ where: { shop } });
+      if (existing) return existing;
+    }
+    throw error;
+  }
 }
 
 export async function getSitemapState(shop: string) {

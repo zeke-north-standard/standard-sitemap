@@ -102,6 +102,19 @@ describe("cleanup webhooks", () => {
     expect(mocks.deleteMarketing).not.toHaveBeenCalled();
   });
 
+  it("acknowledges customer redaction without deleting unrelated shop data", async () => {
+    expect((await complianceAction({ request: signedRequest("customers/redact") } as never)).status).toBe(200);
+    expect(mocks.deleteSessions).not.toHaveBeenCalled();
+    expect(mocks.deleteSitemap).not.toHaveBeenCalled();
+    expect(mocks.deleteMarketing).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-POST cleanup before touching stored data", async () => {
+    await expect(uninstallAction({ request: new Request("https://app.example.com/webhooks/app/uninstalled") } as never))
+      .rejects.toMatchObject({ status: 405 });
+    expect(mocks.deleteSessions).not.toHaveBeenCalled();
+  });
+
   it("rejects a bad signature before deleting anything", async () => {
     await expect(
       uninstallAction({
@@ -122,5 +135,14 @@ describe("cleanup webhooks", () => {
     ).rejects.toMatchObject({ status: 400 });
 
     expect(mocks.deleteSessions).not.toHaveBeenCalled();
+  });
+
+  it("lets Shopify retry a provider erasure failure after the access token is removed", async () => {
+    mocks.deleteMarketing.mockRejectedValueOnce(new Error("Provider unavailable"));
+    await expect(uninstallAction({ request: signedRequest("app/uninstalled") } as never))
+      .rejects.toThrow("Provider unavailable");
+
+    expect((await uninstallAction({ request: signedRequest("app/uninstalled") } as never)).status).toBe(200);
+    expect(mocks.deleteMarketing).toHaveBeenCalledTimes(2);
   });
 });
