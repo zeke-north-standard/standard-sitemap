@@ -43,7 +43,9 @@ export async function syncSitemapForShop({
       fetchProducts(admin),
       fetchPages(admin),
       fetchArticles(admin),
-      fetchPoliciesWithWarning(admin),
+      config.enabledSections.includes("policies")
+        ? fetchPoliciesWithWarning(admin)
+        : Promise.resolve({ links: [], warning: null }),
     ]);
 
   const chunked = buildChunkedSitemap({

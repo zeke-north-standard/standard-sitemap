@@ -157,6 +157,22 @@ describe("new-store generation coverage", () => {
     expect(saveSitemapSnapshot).toHaveBeenCalledOnce();
   });
 
+  it("does not query or warn about policies when that section is disabled", async () => {
+    vi.mocked(graphqlRequest).mockImplementation(async (_admin, query) => {
+      if (query.includes("query SitemapPolicies")) throw new Error("Access denied: read_legal_policies required");
+      return emptyResponse(query) as never;
+    });
+    const config = {
+      ...DEFAULT_SITEMAP_CONFIG,
+      enabledSections: DEFAULT_SITEMAP_CONFIG.enabledSections.filter((section) => section !== "policies"),
+    };
+    const snapshot = await syncSitemapForShop({ admin: {} as never, shop: "limited.myshopify.com", config });
+    expect(snapshot.manifest.warnings).toEqual([]);
+    expect(snapshot.sections.some((section) => section.key === "policies")).toBe(false);
+    expect(vi.mocked(graphqlRequest).mock.calls.some(([, query]) => query.includes("query SitemapPolicies"))).toBe(false);
+    expect(saveSitemapSnapshot).toHaveBeenCalledOnce();
+  });
+
   it.each(["Network request failed", "THROTTLED: rate limit exceeded", "GraphQL data unavailable"])("preserves the previous snapshot on a collection failure: %s", async (message) => {
     vi.mocked(graphqlRequest).mockImplementation(async (_admin, query) => {
       if (query.includes("query SitemapCollections")) throw new Error(message);
