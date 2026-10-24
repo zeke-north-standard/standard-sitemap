@@ -31,9 +31,9 @@ describe("Resend contact webhook", () => {
   });
 
   it.each(["contact.deleted", "contact.updated"])("records authenticated opt-out %s", async (type) => {
-    const response = await action({ request: signed(JSON.stringify({ type, data: { email: "owner@example.com", unsubscribed: true } })) } as never);
+    const response = await action({ request: signed(JSON.stringify({ type, data: { id: "old-contact-id", email: "owner@example.com", unsubscribed: true } })) } as never);
     expect(response.status).toBe(200);
-    expect(mocks.markUnsubscribed).toHaveBeenCalledWith("owner@example.com");
+    expect(mocks.markUnsubscribed).toHaveBeenCalledWith("owner@example.com", "old-contact-id");
   });
 
   it("does not create consent from a provider resubscription or unknown event", async () => {
@@ -44,6 +44,18 @@ describe("Resend contact webhook", () => {
 
   it("ignores invalid email values without crashing the route", async () => {
     const response = await action({ request: signed(JSON.stringify({ type: "contact.deleted", data: { email: { attacker: true } } })) } as never);
+    expect(response.status).toBe(200);
+    expect(mocks.markUnsubscribed).not.toHaveBeenCalled();
+  });
+
+  it("ignores mutation events without an immutable provider ID", async () => {
+    const response = await action({ request: signed(JSON.stringify({ type: "contact.deleted", data: { email: "owner@example.com" } })) } as never);
+    expect(response.status).toBe(200);
+    expect(mocks.markUnsubscribed).not.toHaveBeenCalled();
+  });
+
+  it("ignores malformed email strings even on a signed ID-bearing event", async () => {
+    const response = await action({ request: signed(JSON.stringify({ type: "contact.deleted", data: { id: "old-contact-id", email: "invalid" } })) } as never);
     expect(response.status).toBe(200);
     expect(mocks.markUnsubscribed).not.toHaveBeenCalled();
   });

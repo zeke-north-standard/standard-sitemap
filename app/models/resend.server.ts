@@ -1,4 +1,5 @@
 const RESEND_API_URL = "https://api.resend.com";
+export const RESEND_TIMEOUT_MS = 1000;
 
 type FetchLike = typeof fetch;
 
@@ -27,6 +28,7 @@ async function resendRequest<T>(
 ) {
   const response = await fetchImpl(`${RESEND_API_URL}${path}`, {
     ...init,
+    signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${getApiKey()}`,
       "Content-Type": "application/json",
@@ -47,26 +49,47 @@ async function resendRequest<T>(
   return body as T;
 }
 
+function contactId(value: unknown): string {
+  if (typeof value !== "string" || !/^[a-zA-Z0-9_-]{1,200}$/.test(value)) {
+    throw new Error("Resend did not return a valid contact ID.");
+  }
+  return value;
+}
+
+export async function getResendContact(email: string, fetchImpl: FetchLike = fetch) {
+  try {
+    const result = await resendRequest<{ id: string; email?: string }>(
+      `/contacts/${encodeURIComponent(email)}`, { method: "GET" }, fetchImpl,
+    );
+    return { id: contactId(result?.id), ...(typeof result?.email === "string" ? { email: result.email.trim().toLowerCase() } : {}) };
+  } catch (error) {
+    if (error instanceof ResendApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
 export async function upsertResendContact(
   email: string,
   fetchImpl: FetchLike = fetch,
 ) {
-  try {
-    return await resendRequest<{ id: string }>(
-      `/contacts/${encodeURIComponent(email)}`,
+  const existing = await getResendContact(email, fetchImpl);
+  if (existing) try {
+    const result = await resendRequest<{ id: string }>(
+      `/contacts/${encodeURIComponent(existing.id)}`,
       {
         method: "PATCH",
         body: JSON.stringify({ unsubscribed: false }),
       },
       fetchImpl,
     );
+    return { id: contactId(result?.id) };
   } catch (error) {
     if (!(error instanceof ResendApiError) || error.status !== 404) {
       throw error;
     }
   }
 
-  return resendRequest<{ id: string }>(
+  const result = await resendRequest<{ id: string }>(
     "/contacts",
     {
       method: "POST",
@@ -74,15 +97,16 @@ export async function upsertResendContact(
     },
     fetchImpl,
   );
+  return { id: contactId(result?.id) };
 }
 
 export async function unsubscribeResendContact(
-  email: string,
+  id: string,
   fetchImpl: FetchLike = fetch,
 ) {
   try {
     await resendRequest<{ id: string }>(
-      `/contacts/${encodeURIComponent(email)}`,
+      `/contacts/${encodeURIComponent(contactId(id))}`,
       {
         method: "PATCH",
         body: JSON.stringify({ unsubscribed: true }),
@@ -96,12 +120,12 @@ export async function unsubscribeResendContact(
 }
 
 export async function deleteResendContact(
-  email: string,
+  id: string,
   fetchImpl: FetchLike = fetch,
 ) {
   try {
     await resendRequest<{ id: string }>(
-      `/contacts/${encodeURIComponent(email)}`,
+      `/contacts/${encodeURIComponent(contactId(id))}`,
       { method: "DELETE" },
       fetchImpl,
     );
@@ -143,7 +167,7 @@ export async function sendMarketingWelcomeEmail({
     {
       method: "POST",
       headers: {
-        "Idempotency-Key": `sitemap-welcome-${shop}`,
+        "Idempotency-Key": `sitemap-welcome-${shop}-${unsubscribeToken}`,
       },
       body: JSON.stringify({
         from,

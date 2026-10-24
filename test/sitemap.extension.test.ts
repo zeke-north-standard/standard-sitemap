@@ -17,7 +17,9 @@ const prepare = (value: string) => value
 
 describe("HTML sitemap app-block Liquid fixtures", () => {
   async function render(chunks: Array<Array<{ title: string; url: string }>>, config: Record<string, unknown> = {}, settings: Record<string, unknown> = {}) {
-    const engine = new Liquid({ root: [path.join(root, "snippets")], extname: ".liquid", strictFilters: true });
+    // Compile each unchanged snippet once, as a deployed theme does. The large
+    // fixture exercises Liquid bounds rather than repeated filesystem reads.
+    const engine = new Liquid({ root: [path.join(root, "snippets")], extname: ".liquid", strictFilters: true, cache: true });
     const originalFs = engine.options.fs;
     engine.options.fs = { ...originalFs, readFile: async (file: string) => prepare(await originalFs.readFile(file)) };
     engine.registerFilter("assert_loop_limit", (length: number) => { if (length > 50) throw new Error(`Shopify Liquid iteration cap exceeded: ${length}`); return ""; });

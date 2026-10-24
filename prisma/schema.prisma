@@ -69,6 +69,11 @@ model MarketingSubscription {
   unsubscribedAt     DateTime?
   unsubscribeToken   String?   @unique
   resendContactId    String?
+  resendContactEmail String?
+  resendContactSyncedAt DateTime?
+  resendErasurePending Boolean @default(false)
+  resendErasureContactId String?
+  resendErasureEmail String?
   resendSyncStatus   String    @default("NOT_SYNCED")
   resendSyncError    String?
   resendSyncedAt     DateTime?
@@ -76,4 +81,16 @@ model MarketingSubscription {
   welcomeEmailSentAt DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+
+  @@index([email])
+  @@index([resendErasureEmail, resendErasurePending], map: "MarketingSubscription_pending_erasure_email_idx")
+}
+
+model AppOperationLock {
+  id                    String    @id
+  version               Int       @default(0)
+  credentialFingerprint String?
+  lastCleanupStatus     String?
+  lastCleanupAt         DateTime?
+  reauthRequired        Boolean   @default(false)
 }

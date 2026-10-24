@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   sendMarketingWelcomeEmail,
+  deleteResendContact,
+  getResendContact,
+  RESEND_TIMEOUT_MS,
   unsubscribeResendContact,
   upsertResendContact,
 } from "~/models/resend.server";
@@ -18,20 +21,22 @@ describe("Resend integration", () => {
   });
 
   it("updates an existing contact", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: "contact_1" }), {
+    const response = () => new Response(JSON.stringify({ id: "contact_1" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }),
-    );
+      });
+    const fetchMock = vi.fn().mockImplementation(async () => response());
 
     await expect(
       upsertResendContact("owner@example.com", fetchMock),
     ).resolves.toEqual({ id: "contact_1" });
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0][0]).toContain(
       "/contacts/owner%40example.com",
     );
+    expect(fetchMock.mock.calls[0][1].method).toBe("GET");
+    expect(fetchMock.mock.calls[1][0]).toBe("https://api.resend.com/contacts/contact_1");
+    expect(fetchMock.mock.calls[1][1].method).toBe("PATCH");
   });
 
   it("creates a contact when no existing contact is found", async () => {
@@ -66,8 +71,35 @@ describe("Resend integration", () => {
     );
 
     await expect(
-      unsubscribeResendContact("gone@example.com", fetchMock),
+      unsubscribeResendContact("gone-id", fetchMock),
     ).resolves.toBeUndefined();
+  });
+
+  it("deletes by immutable ID and rejects email-based destructive requests", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response("{}", { status: 200 }));
+    await deleteResendContact("retired-contact-id", fetchMock);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.resend.com/contacts/retired-contact-id");
+    expect(fetchMock.mock.calls[0][1]?.method).toBe("DELETE");
+    await expect(deleteResendContact("owner@example.com", fetchMock)).rejects.toThrow("valid contact ID");
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("treats already-deleted IDs and missing email lookups idempotently", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 404 }));
+    await expect(deleteResendContact("gone-id", fetchMock)).resolves.toBeUndefined();
+    await expect(getResendContact("gone@example.com", fetchMock)).resolves.toBeNull();
+  });
+
+  it("bounds provider requests with an abort signal", async () => {
+    const abort = new AbortController();
+    vi.spyOn(AbortSignal, "timeout").mockReturnValue(abort.signal);
+    const fetchMock = vi.fn(async (_url, init) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new Error("Provider timeout")), { once: true });
+    }));
+    const deletion = deleteResendContact("retired-id", fetchMock);
+    abort.abort();
+    await expect(deletion).rejects.toThrow("Provider timeout");
+    expect(AbortSignal.timeout).toHaveBeenCalledWith(RESEND_TIMEOUT_MS);
   });
 
   it("does not send the welcome email without a mailing address", async () => {

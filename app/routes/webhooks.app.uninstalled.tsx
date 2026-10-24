@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import prisma from "~/db.server";
-import { deleteMarketingSubscription } from "~/models/marketing-consent.server";
+import { cleanupShopLifecycle, LifecycleUnavailableError } from "~/services/shop-lifecycle.server";
 import { authenticateCleanupWebhook } from "~/webhook-auth.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -8,11 +8,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     "APP_UNINSTALLED",
   ]);
 
-  await Promise.all([
-    prisma.session.deleteMany({ where: { shop } }),
-    prisma.sitemapShop.deleteMany({ where: { shop } }),
-    deleteMarketingSubscription(shop),
-  ]);
+  try {
+    await cleanupShopLifecycle(prisma, shop);
+  } catch (error) {
+    if (!(error instanceof LifecycleUnavailableError)) throw error;
+    return new Response(null, { status: 503, headers: { "Retry-After": "30" } });
+  }
 
   console.log(`Received ${topic} webhook for ${shop}`);
   return new Response();

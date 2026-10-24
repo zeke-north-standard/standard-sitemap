@@ -1,10 +1,12 @@
 import type { ActionFunctionArgs } from "react-router";
 import { markMarketingUnsubscribedByEmail } from "~/models/marketing-consent.server";
 import { verifyResendWebhook } from "~/models/resend-webhook.server";
+import { validateMarketingEmail } from "~/models/marketing-consent";
 
 type ResendContactEvent = {
   type: "contact.updated" | "contact.deleted" | string;
   data?: {
+    id?: string;
     email?: string;
     unsubscribed?: boolean;
   };
@@ -42,8 +44,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     event.type === "contact.deleted" ||
     (event.type === "contact.updated" && event.data?.unsubscribed === true);
 
-  if (shouldUnsubscribe && typeof event.data?.email === "string" && event.data.email.trim()) {
-    await markMarketingUnsubscribedByEmail(event.data.email);
+  if (shouldUnsubscribe && typeof event.data?.email === "string" && event.data.email.trim() &&
+      typeof event.data.id === "string" && /^[a-zA-Z0-9_-]{1,200}$/.test(event.data.id)) {
+    let email: string;
+    try { email = validateMarketingEmail(event.data.email); }
+    catch { return new Response(null, { status: 200 }); }
+    await markMarketingUnsubscribedByEmail(email, event.data.id);
   }
 
   return new Response(null, { status: 200 });
